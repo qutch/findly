@@ -1,10 +1,15 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "path";
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 900,
+    width: 1000,
     height: 700,
+    minWidth: 700,
+    minHeight: 500,
+    titleBarStyle: "hiddenInset",
+    trafficLightPosition: { x: 16, y: 16 },
+    backgroundColor: "#0a0a0a",
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.js"),
       contextIsolation: true,
@@ -18,6 +23,21 @@ function createWindow() {
     win.loadFile(path.join(__dirname, "../renderer/index.html"));
   }
 }
+
+// ── IPC Handlers ──────────────────────────────────────
+
+ipcMain.handle("select-folder", async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ["openDirectory"],
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+
+  const folderPath = result.filePaths[0];
+  const name = path.basename(folderPath);
+  return { name, path: folderPath };
+});
+
+// ── App lifecycle ─────────────────────────────────────
 
 app.whenReady().then(createWindow);
 
