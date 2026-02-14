@@ -1,6 +1,8 @@
 """Document processing service — extracts text from files."""
 
-from fastapi import FastAPI, HTTPException
+import os
+
+from fastapi import BackgroundTasks, FastAPI, HTTPException
 from pydantic import BaseModel
 
 from parsers import FileProcessor
@@ -16,18 +18,16 @@ class ProcessFileRequest(BaseModel):
 async def health():
     return {"status": "ok"}
 
+
 # Called from watcher when a new file is added or modified
-@app.post("/process-file")
-async def process_file(request: ProcessFileRequest):
-    try:
-        FileProcessor.sendToPinecone(request.filePath)
-        return {"status": "processed", "file": request.filePath}
-    except FileNotFoundError:
+@app.post("/process-file", status_code=202)
+async def process_file(request: ProcessFileRequest, background_tasks: BackgroundTasks):
+    if not os.path.exists(request.filePath):
         raise HTTPException(status_code=404, detail=f"File not found: {request.filePath}")
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+
+    background_tasks.add_task(FileProcessor.sendToPinecone, request.filePath)
+    return {"status": "queued", "file": request.filePath}
+
 
 # Called from electron app when user clicks "Search" button, with the search query as a parameter
 @app.get("/search")

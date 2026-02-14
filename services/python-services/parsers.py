@@ -21,10 +21,7 @@ class FileProcessor:
     def parsePdf(fileName: str) -> str:
         doc = pymupdf.open(fileName)
         try:
-            text = ""
-            for page in doc:
-                text += page.get_text()
-            return text
+            return "".join(page.get_text() for page in doc)
         finally:
             doc.close()
 
