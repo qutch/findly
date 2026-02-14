@@ -1,0 +1,137 @@
+"""File parsers — PDF, text, code extraction."""
+import pymupdf
+import os
+from docx import Document
+from pptx import Presentation
+from datetime import datetime
+
+# PDF PARSER
+def parsePdf(fileName: str) -> str:
+    doc = pymupdf.open(fileName)
+    text = ""
+    for page in doc:
+        text += page.get_text()
+    return text
+
+# TEXT + CODE PARSER
+def parseTxt(fileName: str) -> str:
+    with open(fileName, 'r') as f:
+        return f.read()
+
+# DOCX PARSER
+def parseDocx(fileName: str) -> str:
+    doc = Document(fileName)
+    return "\n".join(p.text for p in doc.paragraphs)
+
+# PPTX PARSER
+def parsePptx(fileName: str) -> str:
+    pres = Presentation(fileName)
+    parts = []
+    for slide in pres.slides:
+        for shape in slide.shapes:
+            if hasattr(shape, "text"):
+                parts.append(shape.text)
+    return "\n".join(parts)
+
+# Format bytes to human-readable format
+def format_bytes(bytes_size: int) -> str:
+    """Convert bytes to human-readable format."""
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        if bytes_size < 1024.0:
+            return f"{bytes_size:.1f} {unit}"
+        bytes_size /= 1024.0
+    return f"{bytes_size:.1f} PB"
+
+
+# Extract metadata such as filename, type, size, and timestamps
+def extractMetadata(fileName: str) -> dict:
+    # Placeholder for metadata extraction logic
+    stats = os.stat(fileName)
+
+    return {
+        "filename": os.path.basename(fileName),
+        "filepath": os.path.abspath(fileName),
+        "type": os.path.splitext(fileName)[1].lower(),
+        "size": stats.st_size,  # Size in bytes
+        "size_readable": format_bytes(stats.st_size), # Human-readable size (2.5 MB)
+        
+        # Timestamps as raw values
+        "last_modified": stats.st_mtime,
+        "last_accessed": stats.st_atime,
+        
+        # Timestamps as readable strings
+        "last_modified_readable": datetime.fromtimestamp(stats.st_mtime).isoformat(),
+        "last_accessed_readable": datetime.fromtimestamp(stats.st_atime).isoformat(),
+    }
+
+def parseFile(fileName: str) -> dict:
+    metadata = extractMetadata(fileName)
+    file_type = metadata["type"]
+    content = ""
+    if file_type == ".pdf":
+        content = parsePdf(fileName)
+    elif file_type == ".txt":
+        content = parseTxt(fileName)
+    elif file_type == ".docx":
+        content = parseDocx(fileName)
+    elif file_type == ".pptx":
+        content = parsePptx(fileName)
+    else:
+        raise ValueError(f"Unsupported file type: {file_type}")
+    
+    return {
+        "metadata": metadata,
+        "content": content
+    }
+
+def chunkContent(content: str, chunk_size: int = 500, overlap: int = 100) -> list[str]:
+    """
+    Chunk content into pieces with optional overlap for better context in vectorization.
+    """
+    if not content or len(content) <= chunk_size:
+        return [content] if content else []
+
+    chunks = []
+    start = 0
+
+    while start < len(content):
+        # Get chunk from start to start + chunk_size
+        end = start + chunk_size
+        chunk = content[start:end]
+
+        # If not the last chunk and we're not at a natural break, try to break at sentence/word
+        if end < len(content):
+            # Try to break at sentence (period, question mark, exclamation)
+            last_sentence = max(chunk.rfind('. '), chunk.rfind('? '), chunk.rfind('! '))
+            if last_sentence > chunk_size * 0.5:  # Only break at sentence if it's past halfway
+                chunk = chunk[:last_sentence + 1]
+                end = start + last_sentence + 1
+            else:
+                # Otherwise try to break at word boundary
+                last_space = chunk.rfind(' ')
+                if last_space > 0:
+                    chunk = chunk[:last_space]
+                    end = start + last_space
+
+        chunks.append(chunk.strip())
+
+        # Move start forward, accounting for overlap
+        start = end - overlap if end < len(content) else end
+
+    return chunks
+
+
+def prepareForPinecone(fileName: str, chunk_size: int = 500, overlap: int = 100) -> dict:
+    """
+    Parse a file and prepare it for Pinecone ingestion.
+    """
+    # Parse file to get content and metadata
+    parsed = parseFile(fileName)
+
+    # Chunk the content
+    chunks = chunkContent(parsed["content"], chunk_size, overlap)
+
+    return {
+        "chunks": chunks,
+        "metadata": parsed["metadata"],
+}
