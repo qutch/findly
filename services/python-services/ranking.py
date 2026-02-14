@@ -67,8 +67,8 @@ File {idx}:
 - File Path: {file.get('filePath', 'Unknown')}
 - File Type: {file.get('fileType', 'Unknown')}
 - File Size: {file.get('fileSize', 'Unknown')} bytes
-- Last Accessed: {file.get('lastAccessed', 'Unknown')}
-- Last Edited: {file.get('lastEdited', 'Unknown')}
+- Last Accessed: {file.get('lastAccessedReadable', 'Unknown')}
+- Last Edited: {file.get('lastModifiedReadable', 'Unknown')}
 - Content Preview: {self._truncate_content(file.get('content', ''))}
 """
             formatted_data.append(file_info)
@@ -187,7 +187,7 @@ Your Response:
             fallback_files = [
                 {
                     'filePath': file.get('filePath'),
-                    'summary': f"{file.get('fileName')} - {file.get('fileType')} file. Last edited: {file.get('lastEdited')}",
+                    'summary': f"{file.get('fileName')} - {file.get('fileType')} file. Last edited: {file.get('lastModifiedReadable', 'Unknown')}",
                     'rank': idx + 1
                 }
                 for idx, file in enumerate(files)
@@ -292,7 +292,7 @@ Your Response:
             fallback_files = [
                 {
                     'filePath': file.get('filePath'),
-                    'summary': f"{file.get('fileName')} - {file.get('fileType')} file. Last edited: {file.get('lastEdited')}",
+                    'summary': f"{file.get('fileName')} - {file.get('fileType')} file. Last edited: {file.get('lastModifiedReadable', 'Unknown')}",
                     'rank': idx + 1
                 }
                 for idx, file in enumerate(files)
@@ -355,7 +355,7 @@ Your Response:
             return [
                 {
                     'filePath': file.get('filePath'),
-                    'summary': f"{file.get('fileName')} - {file.get('fileType')} file. Last edited: {file.get('lastEdited')}",
+                    'summary': f"{file.get('fileName')} - {file.get('fileType')} file. Last edited: {file.get('lastModifiedReadable', 'Unknown')}",
                     'rank': idx + 1
                 }
                 for idx, file in enumerate(original_files)
