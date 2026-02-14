@@ -1,6 +1,8 @@
 import os
 import json
-from typing import List, Dict, Any, Optional
+import sys
+from typing import List, Dict, Any, Optional, Union
+from datetime import datetime
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -25,6 +27,27 @@ class FileRankingService:
         self.client = genai.Client(api_key=gemini_api_key)
         self.model_name = 'gemini-3-flash-preview'
     
+    def _normalize_files(self, files: List[Any]) -> List[Dict[str, Any]]:
+        """
+        Normalize input files to flat dicts.
+        Accepts File objects from sendToRankingService (parsers.py).
+        Each File object has .metadata (dict) and .content (string).
+        Uses only readable timestamp fields: lastEdited and lastAccessedReadable.
+        """
+        normalized = []
+        for f in files:
+            if not (hasattr(f, 'metadata') and hasattr(f, 'content')):
+                raise ValueError(
+                    f"Invalid input: expected File objects from sendToRankingService. "
+                    f"Got {type(f).__name__} instead."
+                )
+            
+            # File object from parsers.py — flatten metadata + content
+            file_data = {**f.metadata, 'content': f.content}
+            
+            normalized.append(file_data)
+        return normalized
+
     def _format_file_data_for_ranking(self, files: List[Dict[str, Any]]) -> str:
         """
         Format file metadata into a structured string for Gemini API.
@@ -74,14 +97,14 @@ File {idx}:
     async def rank_files(
         self,
         user_query: str,
-        files: List[Dict[str, Any]]
+        files: List[Any]
     ) -> Dict[str, Any]:
         """
         Rank files using Gemini API and generate summaries.
         
         Args:
             user_query: The user's search query
-            files: List of file metadata dictionaries
+            files: List of File objects from parsers.sendToRankingService()
             
         Returns:
             Dictionary containing success status, message, and ranked files
@@ -92,6 +115,9 @@ File {idx}:
                 'message': 'No files provided',
                 'rankedFiles': []
             }
+        
+        # Normalize input: accept File objects or flat dicts
+        files = self._normalize_files(files)
         
         # Format file data for Gemini
         formatted_files = self._format_file_data_for_ranking(files)
@@ -176,14 +202,14 @@ Your Response:
     def rank_files_sync(
         self,
         user_query: str,
-        files: List[Dict[str, Any]]
+        files: List[Any]
     ) -> Dict[str, Any]:
         """
         Synchronous version of rank_files.
         
         Args:
             user_query: The user's search query
-            files: List of file metadata dictionaries
+            files: List of File objects from parsers.sendToRankingService()
             
         Returns:
             Dictionary containing success status, message, and ranked files
@@ -194,6 +220,9 @@ Your Response:
                 'message': 'No files provided',
                 'rankedFiles': []
             }
+        
+        # Normalize input: accept File objects or flat dicts
+        files = self._normalize_files(files)
         
         # Format file data for Gemini
         formatted_files = self._format_file_data_for_ranking(files)
@@ -332,9 +361,17 @@ Your Response:
                 for idx, file in enumerate(original_files)
             ]
 
-
+# Example usage
 def main():
-    """Example usage"""
+    """
+    Example usage with parsers.py:
+    
+        from parsers import sendToRankingService
+        files = sendToRankingService(["/path/to/file1.pdf", "/path/to/file2.docx"])
+        result = service.rank_files_sync(user_query, files)
+    
+    Note: This service ONLY accepts File objects from sendToRankingService.
+    """
     # Debug: Check if API key is loaded
     api_key = os.getenv('GEMINI_API_KEY')
     print(f"API Key loaded: {'Yes ✓' if api_key else 'No ✗'}")
@@ -343,40 +380,58 @@ def main():
     # Initialize the service
     service = FileRankingService(api_key or '')
     
-    # Example: File metadata from another file/module
-    files_from_other_module = [
-        {
-            'fileName': 'math_homework.pdf',
-            'filePath': '/documents/school/math_homework.pdf',
-            'fileType': 'pdf',
-            'fileSize': 245678,
-            'content': 'Algebra problems from chapter 5. Includes quadratic equations, polynomials, and word problems. Due date: Tomorrow.',
-            'lastAccessed': '2024-02-13T15:30:00Z',
-            'lastEdited': '2024-02-13T14:20:00Z'
-        },
-        {
-            'fileName': 'algebra_notes.docx',
-            'filePath': '/documents/school/algebra_notes.docx',
-            'fileType': 'docx',
-            'fileSize': 123456,
-            'content': 'Notes from algebra class covering linear equations and graphing. Includes examples and practice problems.',
-            'lastAccessed': '2024-02-12T10:15:00Z',
-            'lastEdited': '2024-02-10T09:30:00Z'
-        },
-        {
-            'fileName': 'project_plan.txt',
-            'filePath': '/documents/work/project_plan.txt',
-            'fileType': 'txt',
-            'fileSize': 98765,
-            'content': 'Project planning document for Q1 objectives and milestones.',
-            'lastAccessed': '2024-02-11T09:00:00Z',
-            'lastEdited': '2024-02-11T08:45:00Z'
-        }
+    # --- Option 1: Use real files via parsers.py ---
+    # from parsers import sendToRankingService
+    # files = sendToRankingService(["/path/to/file1.pdf", "/path/to/file2.docx"])
+    
+    # --- Option 2: Create test File objects ---
+    from parsers import File
+    
+    # Create mock File objects for testing
+    class MockFile:
+        def __init__(self, metadata, content):
+            self.metadata = metadata
+            self.content = content
+    
+    files = [
+        MockFile(
+            metadata={
+                'fileName': 'math_homework.pdf',
+                'filePath': '/documents/school/math_homework.pdf',
+                'fileType': 'pdf',
+                'fileSize': 245678,
+                'lastAccessedReadable': '2024-02-13T15:30:00Z',
+                'lastEdited': '2024-02-13T14:20:00Z'
+            },
+            content='Algebra problems from chapter 5. Includes quadratic equations, polynomials, and word problems. Due date: Tomorrow.'
+        ),
+        MockFile(
+            metadata={
+                'fileName': 'algebra_notes.docx',
+                'filePath': '/documents/school/algebra_notes.docx',
+                'fileType': 'docx',
+                'fileSize': 123456,
+                'lastAccessedReadable': '2024-02-12T10:15:00Z',
+                'lastEdited': '2024-02-10T09:30:00Z'
+            },
+            content='Notes from algebra class covering linear equations and graphing. Includes examples and practice problems.'
+        ),
+        MockFile(
+            metadata={
+                'fileName': 'project_plan.txt',
+                'filePath': '/documents/work/project_plan.txt',
+                'fileType': 'txt',
+                'fileSize': 98765,
+                'lastAccessedReadable': '2024-02-11T09:00:00Z',
+                'lastEdited': '2024-02-11T08:45:00Z'
+            },
+            content='Project planning document for Q1 objectives and milestones.'
+        )
     ]
     
     user_query = 'bring up the math hw I was working on yesterday'
     
-    result = service.rank_files_sync(user_query, files_from_other_module)
+    result = service.rank_files_sync(user_query, files)
     
     if result['success']:
         print('\n✅ Ranked Files (Most relevant first):\n')
