@@ -6,7 +6,7 @@ from google import genai
 from google.genai import types
 
 # Load environment variables from root .env file
-dotenv_path = os.path.join(os.path.dirname(__file__), '../../../.env')
+dotenv_path = os.path.join(os.path.dirname(__file__), '../../.env')
 load_dotenv(dotenv_path)
 
 
