@@ -1,1 +1,2 @@
-// File watcher — monitors folders, triggers re-indexing
+export { FileWatcherService } from "./fileWatcher.js";
+export { onFileAdded, onFileChanged } from "./handlers.js";

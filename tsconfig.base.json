@@ -10,7 +10,10 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "declaration": true,
-    "sourceMap": true
+    "sourceMap": true,
+
+    "types": ["node"],
+    "lib": ["ES2022"]
   },
   "exclude": ["node_modules", "dist"]
 }
