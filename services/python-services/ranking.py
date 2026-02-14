@@ -146,12 +146,12 @@ Instructions:
 [
   {{
     "filePath": "path/to/file",
-    "summary": "Two line summary of the file. Maximum two sentences.",
+    "summary": "Two line summary of the content of the file (descriptive). Maximum two sentences.",
     "rank": 1
   }},
   {{
     "filePath": "path/to/another/file",
-    "summary": "Two line summary of this file. Maximum two sentences.",
+    "summary": "Two line summary of the content of the file (descriptive). Maximum two sentences.",
     "rank": 2
   }}
 ]
@@ -251,12 +251,12 @@ Instructions:
 [
   {{
     "filePath": "path/to/file",
-    "summary": "Two line summary of the file. Maximum two sentences.",
+    "summary": "Two line summary of the content of the file (descriptive). Maximum two sentences.",
     "rank": 1
   }},
   {{
     "filePath": "path/to/another/file",
-    "summary": "Two line summary of this file. Maximum two sentences.",
+    "summary": "Two line summary of the content of this file (descriptive). Maximum two sentences.",
     "rank": 2
   }}
 ]
