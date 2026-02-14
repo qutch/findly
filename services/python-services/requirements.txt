@@ -4,3 +4,5 @@ pymupdf>=1.25
 python-multipart>=0.0.18
 python-docx>=0.8.11
 python-pptx>=0.6.21
+google-generativeai>=0.3.0
+python-dotenv>=1.0.0
