@@ -1,113 +1,120 @@
 import os
-from pinecone import Pinecone, ServerlessSpec
+from typing import Any, Dict, List
+
 from openai import OpenAI
+from pinecone import Pinecone, ServerlessSpec
 
-class PinconeService:
 
-    _instance = None
-    _initialized = False
+class PineconeService:
+    def __init__(self) -> None:
+        self._initialized = False
+        self.client: Pinecone | None = None
+        self.index = None
+        self.openai_client: OpenAI | None = None
 
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super.__new__(cls)
-            print("Creating new PinconeService instance")
-        else:
-            print("Returning existing PineconeService instance")
+    def _require_env(self, key: str) -> str:
+        value = os.getenv(key)
+        if not value:
+            raise ValueError(f"Missing required environment variable: {key}")
+        return value
 
-        return cls._instance
-
-    def ensure_initialize(self):
+    def ensure_initialized(self) -> None:
         if self._initialized:
-            print("Already initialized, skipping...")
             return
 
-        print("Initializing Pinecone connection...")
+        pinecone_api_key = self._require_env("PINECONE_API_KEY")
+        openai_api_key = self._require_env("OPENAI_API_KEY")
+        index_name = self._require_env("PINECONE_INDEX_NAME")
 
-        self.client = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-        self.openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.client = Pinecone(api_key=pinecone_api_key)
+        self.openai_client = OpenAI(api_key=openai_api_key)
 
-        index_name = os.getenv("PINECONE_INDEX_NAME")
-
-        if index_name not in self.client.list_indexes().names():
-            print(f"Creating index {index_name}...")
+        existing_indexes = self.client.list_indexes().names()
+        if index_name not in existing_indexes:
             self.client.create_index(
                 name=index_name,
-                dimension=1536,  # text-embedding-3-small dimension
+                dimension=1536,  # text-embedding-3-small
                 metric="cosine",
-                spec=ServerlessSpec(
-                    cloud="aws",
-                    region="us-east-1"
-                )
+                spec=ServerlessSpec(cloud="aws", region="us-east-1"),
             )
 
         self.index = self.client.Index(index_name)
-
         self._initialized = True
 
-    def _embed_text(self, text: str) -> list[float]:
-        """Create embedding for text using OpenAI."""
+    def _embed_texts(self, texts: List[str]) -> List[List[float]]:
+        self.ensure_initialized()
+        if not texts:
+            return []
+
+        assert self.openai_client is not None
         response = self.openai_client.embeddings.create(
             model="text-embedding-3-small",
-            input=text
+            input=texts,
         )
-        return response.data[0].embedding
+        return [item.embedding for item in response.data]
 
-    def indexFile(self, chunks: list[str], metadata: dict, file_id: str):
-        self.ensure_initialize()
+    def index_file(self, chunks: List[str], metadata: Dict[str, Any], file_id: str) -> None:
+        self.ensure_initialized()
+        if not chunks:
+            return
 
-        embeddings = []
-        batch_size = 100  # OpenAI API batch limit
+        assert self.index is not None
 
-        for i in range(0, len(chunks), batch_size):
-            batch = chunks[i:i + batch_size]
-            response = self.openai_client.embeddings.create(
-                model="text-embedding-3-small",
-                input=batch
-            )
-            embeddings.extend([item.embedding for item in response.data])
-
-            vectors = [
+        embeddings = self._embed_texts(chunks)
+        vectors = []
+        for idx, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+            vectors.append(
                 {
-                    "id": f"{file_id}_{i}",
+                    "id": f"{file_id}:{idx}",
                     "values": embedding,
                     "metadata": {
+                        **metadata,
                         "text": chunk,
-                        "chunk_index": i,
-                        **metadata  # Spread the provided metadata
-                    }
+                        "chunkIndex": idx,
+                        "fileId": file_id,
+                    },
                 }
-                for i, (chunk, embedding) in enumerate(zip(chunks, embeddings))
-            ]
+            )
 
-            upsert_batch_size = 100
-            for i in range(0, len(vectors), upsert_batch_size):
-                batch = vectors[i:i + upsert_batch_size]
-                self.index.upsert(vectors=batch)
-                print(f"Uploaded batch {i // upsert_batch_size + 1}/{(len(vectors) - 1) // upsert_batch_size + 1}")
+        batch_size = 100
+        for start in range(0, len(vectors), batch_size):
+            self.index.upsert(vectors=vectors[start : start + batch_size])
 
+    def query_file_paths(self, query_text: str, top_k: int = 20) -> List[str]:
+        self.ensure_initialized()
+        if not query_text.strip():
+            return []
 
-
-    def query(self, query_text):
-
-        self.ensure_initialize()
-
-        query_embedding = self._embed_text(query_text)
-
+        assert self.index is not None
+        query_embedding = self._embed_texts([query_text])[0]
         results = self.index.query(
             vector=query_embedding,
-            top_k=20,
+            top_k=top_k,
             include_metadata=True,
-            filter=filter
         )
 
-        matches = [
-            {
-                "score": match.score,
-                **{k: v for k, v in match.metadata.items() if k != "text"}
-            }
-            for match in results.matches
-        ]
+        seen = set()
+        ordered_paths: List[str] = []
+        for match in results.matches:
+            metadata = match.metadata or {}
+            file_path = metadata.get("filePath")
+            if not file_path or file_path in seen:
+                continue
+            seen.add(file_path)
+            ordered_paths.append(str(file_path))
 
-        return matches
+        return ordered_paths
 
 
+_service: PineconeService | None = None
+
+
+def get_pinecone_service() -> PineconeService:
+    global _service
+    if _service is None:
+        _service = PineconeService()
+    return _service
+
+
+def queryPinecone(query_text: str, top_k: int = 20) -> List[str]:
+    return get_pinecone_service().query_file_paths(query_text, top_k=top_k)

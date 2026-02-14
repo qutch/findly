@@ -147,11 +147,13 @@ Instructions:
   {{
     "filePath": "path/to/file",
     "summary": "Two line summary of the content of the file (descriptive). Maximum two sentences.",
+    "reason": "Short explanation of why this file matches the query.",
     "rank": 1
   }},
   {{
     "filePath": "path/to/another/file",
     "summary": "Two line summary of the content of the file (descriptive). Maximum two sentences.",
+    "reason": "Short explanation of why this file matches the query.",
     "rank": 2
   }}
 ]
@@ -188,6 +190,7 @@ Your Response:
                 {
                     'filePath': file.get('filePath'),
                     'summary': f"{file.get('fileName')} - {file.get('fileType')} file. Last edited: {file.get('lastModifiedReadable', 'Unknown')}",
+                    'reason': 'Matched by fallback relevance ordering.',
                     'rank': idx + 1
                 }
                 for idx, file in enumerate(files)
@@ -252,11 +255,13 @@ Instructions:
   {{
     "filePath": "path/to/file",
     "summary": "Two line summary of the content of the file (descriptive). Maximum two sentences.",
+    "reason": "Short explanation of why this file matches the query.",
     "rank": 1
   }},
   {{
     "filePath": "path/to/another/file",
     "summary": "Two line summary of the content of this file (descriptive). Maximum two sentences.",
+    "reason": "Short explanation of why this file matches the query.",
     "rank": 2
   }}
 ]
@@ -293,6 +298,7 @@ Your Response:
                 {
                     'filePath': file.get('filePath'),
                     'summary': f"{file.get('fileName')} - {file.get('fileType')} file. Last edited: {file.get('lastModifiedReadable', 'Unknown')}",
+                    'reason': 'Matched by fallback relevance ordering.',
                     'rank': idx + 1
                 }
                 for idx, file in enumerate(files)
@@ -344,6 +350,9 @@ Your Response:
                 ]
                 
                 if len(valid_files) > 0:
+                    for file in valid_files:
+                        if not file.get('reason'):
+                            file['reason'] = 'Matched by semantic similarity and metadata relevance.'
                     return valid_files
             
             raise ValueError('Invalid response structure')
@@ -356,6 +365,7 @@ Your Response:
                 {
                     'filePath': file.get('filePath'),
                     'summary': f"{file.get('fileName')} - {file.get('fileType')} file. Last edited: {file.get('lastModifiedReadable', 'Unknown')}",
+                    'reason': 'Matched by fallback relevance ordering.',
                     'rank': idx + 1
                 }
                 for idx, file in enumerate(original_files)

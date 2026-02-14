@@ -4,6 +4,7 @@ import os
 from docx import Document
 from pptx import Presentation
 from datetime import datetime
+import hashlib
 
 class File:
     def __init__(self, fileName: str):
@@ -193,7 +194,11 @@ class FileProcessor:
         Full pipeline to parse a file, prepare it, and send it to Pinecone.
         """
         preparedFiles = FileProcessor.prepareForPinecone(fileName)
-        print(fileName)
-        print(preparedFiles)
-        
-        # Call Pinecone Service to upsert chunks and metadata (not implemented here)
+        metadata = preparedFiles["metadata"]
+        chunks = preparedFiles["chunks"]
+
+        # Lazy import to keep parser usable without Pinecone requirements in non-indexing paths.
+        from pineconeService import get_pinecone_service
+
+        file_id = hashlib.sha1(metadata["filePath"].encode("utf-8")).hexdigest()
+        get_pinecone_service().index_file(chunks, metadata, file_id)

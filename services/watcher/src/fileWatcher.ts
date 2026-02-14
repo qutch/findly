@@ -24,7 +24,7 @@ export class FileWatcherService {
     this.paths = options.paths;
     this.metadataCheckIntervalMs =
       options.metadataCheckIntervalMs ??
-      Number(process.env.WATCH_METADATA_INTERVAL_MS ?? 300000);
+      Number(process.env.WATCH_METADATA_INTERVAL_MS ?? 1000);
   }
 
   start(): void {

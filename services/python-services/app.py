@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from parsers import FileProcessor
+from search import search as run_search
 
 app = FastAPI()
 
@@ -32,5 +33,13 @@ async def process_file(request: ProcessFileRequest):
 # Called from electron app when user clicks "Search" button, with the search query as a parameter
 @app.get("/search")
 async def search(query: str):
-    # For now, just return the query back to the app. In a real implementation, this would trigger the search process.
-    return {"status": "searching", "query": query}
+    if not query.strip():
+        raise HTTPException(status_code=400, detail="Query cannot be empty.")
+
+    try:
+        results = run_search(query)
+        return {"results": results, "count": len(results)}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
