@@ -1,0 +1,158 @@
+########################################################
+# ROOT ENVIRONMENT FILES
+########################################################
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Supabase local config
+.supabase/
+supabase/.temp/
+supabase/.env
+
+# Secrets
+*.pem
+*.key
+*.crt
+
+########################################################
+# NODE / TYPESCRIPT / ELECTRON
+########################################################
+
+# Dependencies
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Build output
+dist/
+build/
+out/
+release/
+
+# Vite
+.vite/
+
+# TypeScript
+*.tsbuildinfo
+
+# Coverage
+coverage/
+
+# Electron packaging
+*.asar
+*.dmg
+*.exe
+*.AppImage
+*.snap
+
+# Electron builder
+electron-builder.yml
+electron-builder.json
+dist_electron/
+
+########################################################
+# PYTHON (Document Processing Service)
+########################################################
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.env/
+.venv/
+ENV/
+
+# Python build
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+wheels/
+pip-wheel-metadata/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Python logs
+*.log
+
+# Pytest
+.pytest_cache/
+
+########################################################
+# CHROMADB / VECTOR DATABASE
+########################################################
+
+# Local Chroma persistence
+chroma/
+chroma_db/
+*.sqlite3
+*.db
+
+# Embedding cache
+.embeddings/
+.vector_cache/
+
+########################################################
+# DATABASE EXPORTS / DUMPS
+########################################################
+
+*.sql
+*.dump
+
+########################################################
+# IDE / EDITOR
+########################################################
+
+# VSCode
+.vscode/
+
+# JetBrains
+.idea/
+
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+########################################################
+# DOCKER
+########################################################
+
+docker-compose.override.yml
+*.local.yml
+
+########################################################
+# TEST ARTIFACTS
+########################################################
+
+jest-cache/
+*.snap
+
+########################################################
+# TEMP FILES
+########################################################
+
+tmp/
+temp/
+.cache/
+*.tmp
