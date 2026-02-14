@@ -5,6 +5,15 @@ from docx import Document
 from pptx import Presentation
 from datetime import datetime
 
+class File:
+    def __init__(self, fileName: str):
+        parsed = parseFile(fileName)
+        self.metadata = parsed["metadata"] # Dict
+        self.content = parsed["content"] # String
+
+
+
+
 # PDF PARSER
 def parsePdf(fileName: str) -> str:
     doc = pymupdf.open(fileName)
@@ -45,28 +54,35 @@ def format_bytes(bytes_size: int) -> str:
 
 # Extract metadata such as filename, type, size, and timestamps
 def extractMetadata(fileName: str) -> dict:
-    # Placeholder for metadata extraction logic
+    """
+    Extract file metadata in a format compatible with ranking.py.
+    Returns camelCase keys to match ranking service expectations.
+    """
     stats = os.stat(fileName)
 
     return {
-        "filename": os.path.basename(fileName),
-        "filepath": os.path.abspath(fileName),
-        "type": os.path.splitext(fileName)[1].lower(),
-        "size": stats.st_size,  # Size in bytes
-        "size_readable": format_bytes(stats.st_size), # Human-readable size (2.5 MB)
-        
+        # camelCase for compatibility with ranking.py
+        "fileName": os.path.basename(fileName),
+        "filePath": os.path.abspath(fileName),
+        "fileType": os.path.splitext(fileName)[1].lower(),
+        "fileSize": stats.st_size,  # Size in bytes
+        "sizeReadable": format_bytes(stats.st_size), # Human-readable size (2.5 MB)
+
         # Timestamps as raw values
-        "last_modified": stats.st_mtime,
-        "last_accessed": stats.st_atime,
-        
-        # Timestamps as readable strings
-        "last_modified_readable": datetime.fromtimestamp(stats.st_mtime).isoformat(),
-        "last_accessed_readable": datetime.fromtimestamp(stats.st_atime).isoformat(),
+        "lastModified": stats.st_mtime,
+        "lastAccessed": stats.st_atime,
+
+        # Timestamps as readable strings (ISO format for ranking.py)
+        "lastEdited": datetime.fromtimestamp(stats.st_mtime).isoformat(),
+        "lastAccessedReadable": datetime.fromtimestamp(stats.st_atime).isoformat(),
     }
 
 def parseFile(fileName: str) -> dict:
+    # Extracts metadata
     metadata = extractMetadata(fileName)
-    file_type = metadata["type"]
+    
+    # Parses the file content
+    file_type = metadata["fileType"]
     content = ""
     if file_type == ".pdf":
         content = parsePdf(fileName)
@@ -83,6 +99,19 @@ def parseFile(fileName: str) -> dict:
         "metadata": metadata,
         "content": content
     }
+
+
+# Takes in list of filenames from pinecone service
+def sendToRankingService(fileNames: list[str]) -> list[File]:
+    """
+    Send files to ranking service for processing and return ranked list of File objects.
+    """
+    files = []
+    for fileName in fileNames:
+        files.append(File(fileName))
+
+    return files
+
 
 def chunkContent(content: str, chunk_size: int = 500, overlap: int = 100) -> list[str]:
     """
@@ -134,4 +163,4 @@ def prepareForPinecone(fileName: str, chunk_size: int = 500, overlap: int = 100)
     return {
         "chunks": chunks,
         "metadata": parsed["metadata"],
-}
+    }
