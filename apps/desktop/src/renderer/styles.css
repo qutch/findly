@@ -204,6 +204,7 @@ body {
 }
 
 .btn-add-folder {
+  -webkit-app-region: no-drag;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -256,7 +257,7 @@ body {
 /* ── Search bar ────────────────────────────────────── */
 .search-bar {
   display: grid;
-  grid-template-columns: 35% auto 35%;
+  grid-template-columns: 30% auto 30%;
   align-items: center;
   width: 100%;
   -webkit-app-region: no-drag;

@@ -5,17 +5,12 @@ export interface FileMetadata {
   sizeBytes: number;
   createdAt: string;
   updatedAt: string;
-  summary?: string;
+  summary: string;
   tags?: string[];
 }
 
 export interface SearchQuery {
   query: string;
-  filters?: {
-    fileType?: string[];
-    tags?: string[];
-  };
-  limit?: number;
 }
 
 export interface SearchResult {
