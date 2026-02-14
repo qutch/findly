@@ -1,6 +1,6 @@
 const DOCUMENT_PROCESSOR_URL =
   process.env.DOCUMENT_PROCESSOR_URL ??
-  'http://localhost:8100/process-file';
+  'http://127.0.0.1:8000/process-file';
 
 export async function onFileAdded(filePath: string): Promise<void> {
   await sendToDocumentProcessor(filePath);
