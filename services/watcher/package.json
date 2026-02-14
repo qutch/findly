@@ -11,7 +11,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@findly/shared": "workspace:*"
+    "@findly/shared": "workspace:*",
+    "chokidar": "^5.0.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/node": "^25.2.3"
+  }
 }

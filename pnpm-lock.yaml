@@ -33,6 +33,9 @@ importers:
       '@findly/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@findly/watcher':
+        specifier: workspace:*
+        version: link:../../services/watcher
     devDependencies:
       '@types/react':
         specifier: ^19.2.14
@@ -61,7 +64,7 @@ importers:
 
   packages/shared: {}
 
-  services/document-processing: {}
+  services/python-services: {}
 
   services/ranking:
     dependencies:
@@ -88,12 +91,6 @@ importers:
         specifier: workspace:*
         version: link:../../packages/shared
 
-  services/supabase:
-    dependencies:
-      '@findly/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
-
   services/vector:
     dependencies:
       '@findly/shared':
@@ -111,6 +108,13 @@ importers:
       '@findly/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      chokidar:
+        specifier: ^5.0.0
+        version: 5.0.0
+    devDependencies:
+      '@types/node':
+        specifier: ^25.2.3
+        version: 25.2.3
 
 packages:
 
@@ -803,6 +807,10 @@ packages:
   caniuse-lite@1.0.30001769:
     resolution: {integrity: sha512-BCfFL1sHijQlBGWBMuJyhZUhzo7wer5sVj9hqekB/7xn0Ypy+pER/edCYQm4exbXj4WiySGp40P8UuTh6w1srg==}
 
+  chokidar@5.0.0:
+    resolution: {integrity: sha512-TQMmc3w+5AxjpL8iIiwebF73dRDF4fBIieAqGn9RGCWaEVwQ6Fb2cGe31Yns0RRIzii5goJ1Y7xbMwo1TxMplw==}
+    engines: {node: '>= 20.19.0'}
+
   clone-response@1.0.3:
     resolution: {integrity: sha512-ROoL94jJH2dUVML2Y/5PEDNaSHgeOdSDicUyS7izcF63G6sTc/FTjLub4b8Il9S8S0beOfYt0TaA5qvFK+w0wA==}
 
@@ -1083,6 +1091,10 @@ packages:
   react@19.2.4:
     resolution: {integrity: sha512-9nfp2hYpCwOjAN+8TZFGhtWEwgvWHXqESH8qT89AT/lWklpLON22Lc8pEtnpsZz7VmawabSU0gCjnj8aC0euHQ==}
     engines: {node: '>=0.10.0'}
+
+  readdirp@5.0.0:
+    resolution: {integrity: sha512-9u/XQ1pvrQtYyMpZe7DXKv2p5CNvyVwzUB6uhLAnQwHMSgKMBR62lc7AHljaeteeHXn11XTAaLLUVZYVZyuRBQ==}
+    engines: {node: '>= 20.19.0'}
 
   resolve-alpn@1.2.1:
     resolution: {integrity: sha512-0a1F4l73/ZFZOakJnQ3FvkJ2+gSTQWz/r2KE5OdDY0TxPm5h4GkqkWWfM47T7HsbnOtcJVEF4epCVy6u7Q3K+g==}
@@ -1770,6 +1782,10 @@ snapshots:
 
   caniuse-lite@1.0.30001769: {}
 
+  chokidar@5.0.0:
+    dependencies:
+      readdirp: 5.0.0
+
   clone-response@1.0.3:
     dependencies:
       mimic-response: 1.0.1
@@ -2079,6 +2095,8 @@ snapshots:
   react-refresh@0.18.0: {}
 
   react@19.2.4: {}
+
+  readdirp@5.0.0: {}
 
   resolve-alpn@1.2.1: {}
 
