@@ -1,12 +1,11 @@
 export interface FileMetadata {
-  id: string;
   filePath: string;
   fileType: string;
-  sizeBytes: number;
+  fileSize: number;
+  lastAccessedAt: string;
+  lastUpdatedAt: string;
   createdAt: string;
-  updatedAt: string;
-  summary: string;
-  tags?: string[];
+  content: string;
 }
 
 export interface SearchQuery {
