@@ -12,8 +12,6 @@ class File:
         self.content = parsed["content"] # String
 
 
-
-
 # PDF PARSER
 def parsePdf(fileName: str) -> str:
     doc = pymupdf.open(fileName)
@@ -24,7 +22,7 @@ def parsePdf(fileName: str) -> str:
 
 # TEXT + CODE PARSER
 def parseTxt(fileName: str) -> str:
-    with open(fileName, 'r') as f:
+    with open(fileName, 'r', encoding='utf-8', errors='ignore') as f:
         return f.read()
 
 # DOCX PARSER
@@ -73,20 +71,27 @@ def extractMetadata(fileName: str) -> dict:
         "lastAccessed": stats.st_atime,
 
         # Timestamps as readable strings (ISO format for ranking.py)
-        "lastEdited": datetime.fromtimestamp(stats.st_mtime).isoformat(),
+        "lastModifiedReadable": datetime.fromtimestamp(stats.st_mtime).isoformat(),
         "lastAccessedReadable": datetime.fromtimestamp(stats.st_atime).isoformat(),
     }
 
 def parseFile(fileName: str) -> dict:
+    """
+    Parse a file and extract both metadata and content.
+
+    Handles case-insensitive file extensions and files without extensions.
+    """
     # Extracts metadata
     metadata = extractMetadata(fileName)
-    
-    # Parses the file content
-    file_type = metadata["fileType"]
+
+    # Parses the file content - normalize to lowercase for case-insensitive matching
+    file_type = metadata["fileType"].lower()
     content = ""
+
     if file_type == ".pdf":
         content = parsePdf(fileName)
-    elif file_type == ".txt":
+    elif file_type == ".txt" or file_type == "":
+        # Handle .txt files and files without extensions (README, Makefile, etc.)
         content = parseTxt(fileName)
     elif file_type == ".docx":
         content = parseDocx(fileName)
@@ -94,7 +99,7 @@ def parseFile(fileName: str) -> dict:
         content = parsePptx(fileName)
     else:
         raise ValueError(f"Unsupported file type: {file_type}")
-    
+
     return {
         "metadata": metadata,
         "content": content
