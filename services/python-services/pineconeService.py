@@ -85,29 +85,33 @@ class PinconeService:
                 self.index.upsert(vectors=batch)
                 print(f"Uploaded batch {i // upsert_batch_size + 1}/{(len(vectors) - 1) // upsert_batch_size + 1}")
 
-
-
-    def query(self, query_text):
-
+    def query(self, query_text: str, filter: dict = None) -> list[dict]:
         self.ensure_initialize()
 
         query_embedding = self._embed_text(query_text)
 
         results = self.index.query(
             vector=query_embedding,
-            top_k=20,
+            top_k=100,
             include_metadata=True,
             filter=filter
         )
 
-        matches = [
-            {
-                "score": match.score,
-                **{k: v for k, v in match.metadata.items() if k != "text"}
-            }
-            for match in results.matches
-        ]
+        seen_files = set()
+        unique_matches = []
 
-        return matches
+        for match in results.matches:
+            filepath = match.metadata.get("filepath")
+            if filepath and filepath not in seen_files:
+                seen_files.add(filepath)
+                unique_matches.append({
+                    "score": match.score,
+                    **{k: v for k, v in match.metadata.items() if k != "text"}
+                })
+
+                if len(unique_matches) >= 20:
+                    break
+
+        return unique_matches
 
 
