@@ -1,0 +1,17 @@
+{
+  "name": "@findly/supabase",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Supabase metadata service",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@findly/shared": "workspace:*"
+  },
+  "devDependencies": {}
+}

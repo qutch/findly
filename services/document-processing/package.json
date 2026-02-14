@@ -1,0 +1,6 @@
+{
+  "name": "@findly/document-processing",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Python document processing service"
+}

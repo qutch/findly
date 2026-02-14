@@ -1,0 +1,23 @@
+{
+  "name": "findly",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "pnpm --filter @findly/desktop dev",
+    "build": "pnpm -r build",
+    "demo": "pnpm dev:docproc & pnpm dev",
+    "typecheck": "pnpm -r typecheck",
+    "dev:docproc": "cd services/document-processing && uvicorn app:app --reload --port 8100"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["electron", "esbuild"]
+  }
+}

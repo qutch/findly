@@ -96,6 +96,9 @@ pip-wheel-metadata/
 # Pytest
 .pytest_cache/
 
+# Mypy
+.mypy_cache/
+
 ########################################################
 # CHROMADB / VECTOR DATABASE
 ########################################################
