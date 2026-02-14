@@ -23,5 +23,8 @@
       "electron",
       "esbuild"
     ]
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1"
   }
 }
