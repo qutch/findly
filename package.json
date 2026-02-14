@@ -7,7 +7,7 @@
     "build": "pnpm -r build",
     "demo": "pnpm dev:docproc & pnpm dev",
     "typecheck": "pnpm -r typecheck",
-    "dev:docproc": "cd services/document-processing && uvicorn app:app --reload --port 8100"
+    "dev:docproc": "cd services/python-services && .venv/bin/python -m uvicorn app:app --reload --port 8100"
   },
   "engines": {
     "node": ">=20",

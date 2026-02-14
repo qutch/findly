@@ -1,4 +1,4 @@
-from parsers import sendToRankingService
+from parsers import FileProcessor
 
 # Main driver of the python services: search functionality
 def search(query: str):
@@ -10,7 +10,7 @@ def search(query: str):
     fileNames = queryPinecone(query)
 
     # Step 2: Send file names to ranking service to get ranked list of File objects
-    rankedFiles = sendToRankingService(fileNames)
+    rankedFiles = FileProcessor.sendToRankingService(fileNames)
 
     # Step 3: Return ranked files to Electron app for display
     return rankedFiles
