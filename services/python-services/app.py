@@ -13,6 +13,6 @@ async def health():
 async def process_file(file: dict):
     return {"status": "processed", "file": file}
 
-@app.post("/extract-metadata")
-async def extract_metadata(file: dict):
-    return {"status": "metadata extracted", "file": file}
+@app.get("/search")
+async def search(query: str):
+    return {"status": "searching", "query": query}
