@@ -32,7 +32,7 @@ class FileRankingService:
         Normalize input files to flat dicts.
         Accepts File objects from sendToRankingService (parsers.py).
         Each File object has .metadata (dict) and .content (string).
-        Uses only readable timestamp fields: lastEdited and lastAccessedReadable.
+        Uses only readable timestamp fields: lastModifiedReadable and lastAccessedReadable.
         """
         normalized = []
         for f in files:
@@ -401,7 +401,7 @@ def main():
                 'fileType': 'pdf',
                 'fileSize': 245678,
                 'lastAccessedReadable': '2024-02-13T15:30:00Z',
-                'lastEdited': '2024-02-13T14:20:00Z'
+                'lastModifiedReadable': '2024-02-13T14:20:00Z'
             },
             content='Algebra problems from chapter 5. Includes quadratic equations, polynomials, and word problems. Due date: Tomorrow.'
         ),
@@ -412,7 +412,7 @@ def main():
                 'fileType': 'docx',
                 'fileSize': 123456,
                 'lastAccessedReadable': '2024-02-12T10:15:00Z',
-                'lastEdited': '2024-02-10T09:30:00Z'
+                'lastModifiedReadable': '2024-02-10T09:30:00Z'
             },
             content='Notes from algebra class covering linear equations and graphing. Includes examples and practice problems.'
         ),
@@ -423,7 +423,7 @@ def main():
                 'fileType': 'txt',
                 'fileSize': 98765,
                 'lastAccessedReadable': '2024-02-11T09:00:00Z',
-                'lastEdited': '2024-02-11T08:45:00Z'
+                'lastModifiedReadable': '2024-02-11T08:45:00Z'
             },
             content='Project planning document for Q1 objectives and milestones.'
         )
