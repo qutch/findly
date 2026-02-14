@@ -36,3 +36,11 @@ typing_extensions==4.15.0
 urllib3==2.6.3
 uvicorn==0.40.0
 xlsxwriter==3.2.9
+fastapi>=0.115
+uvicorn>=0.34
+pymupdf>=1.25
+python-multipart>=0.0.18
+python-docx>=0.8.11
+python-pptx>=0.6.21
+google-genai>=0.2.0
+python-dotenv>=1.0.0
