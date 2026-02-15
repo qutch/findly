@@ -168,7 +168,10 @@ Your Response:
             # Call Gemini API
             response = self.client.models.generate_content(
                 model=self.model_name,
-                contents=prompt
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    thinking_config=types.ThinkingConfig(thinking_level="minimal")
+                ),
             )
             text = response.text
             
@@ -273,7 +276,10 @@ Your Response:
             # Call Gemini API
             response = self.client.models.generate_content(
                 model=self.model_name,
-                contents=prompt
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    thinking_config=types.ThinkingConfig(thinking_level="minimal")
+                ),
             )
             text = response.text
             
