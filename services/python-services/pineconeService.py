@@ -97,7 +97,7 @@ class PineconeService:
 
         results = self.index.query(
             vector=query_embedding,
-            top_k=100,
+            top_k=20,
             include_metadata=True,
             filter=filter
         )
@@ -114,7 +114,7 @@ class PineconeService:
                     **{k: v for k, v in match.metadata.items() if k != "text"}
                 })
 
-                if len(unique_matches) >= 20:
+                if len(unique_matches) >= 5:
                     break
 
         return unique_matches

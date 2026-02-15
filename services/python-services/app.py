@@ -13,8 +13,12 @@ dotenv_path = os.path.join(os.path.dirname(__file__), "../../.env")
 load_dotenv(dotenv_path)
 
 from indexing import uploadFileToPinecone
+from parsers import FileProcessor
 
 app = FastAPI()
+
+# Clear the content cache at startup so each session starts fresh
+FileProcessor.clearCache()
 
 
 class ProcessFileRequest(BaseModel):

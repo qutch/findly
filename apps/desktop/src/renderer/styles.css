@@ -16,8 +16,8 @@
   --text-primary: #e5e5e5;
   --text-secondary: #888888;
   --text-muted: #555555;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
+  --accent: #c45c5c;
+  --accent-hover: #a34a4a;
   --danger: #ef4444;
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -309,7 +309,7 @@ body {
 
 .search-bar:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15), 0 0 12px rgba(59, 130, 246, 0.08);
+  box-shadow: 0 0 0 3px rgba(196, 92, 92, 0.15), 0 0 12px rgba(196, 92, 92, 0.08);
 }
 
 .search-bar--loading {
@@ -318,8 +318,8 @@ body {
 }
 
 @keyframes search-pulse {
-  0%, 100% { box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15), 0 0 12px rgba(59, 130, 246, 0.1); }
-  50% { box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.3), 0 0 20px rgba(59, 130, 246, 0.15); }
+  0%, 100% { box-shadow: 0 0 0 2px rgba(196, 92, 92, 0.15), 0 0 12px rgba(196, 92, 92, 0.1); }
+  50% { box-shadow: 0 0 0 5px rgba(196, 92, 92, 0.3), 0 0 20px rgba(196, 92, 92, 0.15); }
 }
 
 .search-bar__icon {
