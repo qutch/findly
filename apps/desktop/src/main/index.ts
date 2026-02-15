@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, globalShortcut } from "electron";
+import { app, Tray, Menu, BrowserWindow, ipcMain, dialog, globalShortcut } from "electron";
 import path from "path";
 import { FileWatcherService } from "@findly/watcher";
 console.log("[main] Electron main loaded");
@@ -196,9 +196,11 @@ app.on("before-quit", async () => {
 });
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
+  if (process.platform !== "darwin") {};
 });
 
 app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow()
+  };
 });
