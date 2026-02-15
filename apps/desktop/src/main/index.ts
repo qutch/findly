@@ -3,6 +3,7 @@ import path from "path";
 import { FileWatcherService } from "@findly/watcher";
 console.log("[main] Electron main loaded");
 let fileWatcher: FileWatcherService | null = null;
+let watchedPaths: string[] = [];
 let mainWindow: BrowserWindow | null = null;
 let spotlightWindow: BrowserWindow | null = null;
 let isQuitting = false;
@@ -111,24 +112,28 @@ function hideSpotlight() {
 
 ipcMain.handle("select-folder", async () => {
   const result = await dialog.showOpenDialog({
-    properties: ["openDirectory"],
+    properties: ["openDirectory", "multiSelections"],
   });
 
   if (result.canceled || result.filePaths.length === 0) {
     return null;
   }
 
-  const folderPath = result.filePaths[0];
-  const name = path.basename(folderPath);
+  // Filter out any folders already being watched
+  const newPaths = result.filePaths.filter((p) => !watchedPaths.includes(p));
+  if (newPaths.length === 0) return null;
 
-  // Stop existing watcher if user switches folders
+  // Add new paths to the tracked list
+  watchedPaths.push(...newPaths);
+
+  // Stop existing watcher and restart with all paths
   if (fileWatcher) {
     await fileWatcher.stop();
   }
 
   // Start new watcher with indexing progress tracking
   fileWatcher = new FileWatcherService({
-    paths: [folderPath],
+    paths: watchedPaths,
     onIndexingProgress: (processed, total) => {
       mainWindow?.webContents.send("indexing-progress", { processed, total });
     },
@@ -142,9 +147,10 @@ ipcMain.handle("select-folder", async () => {
   // Notify renderer that indexing has started
   mainWindow?.webContents.send("indexing-started");
 
-  console.log("[main] Watching folder:", folderPath);
+  const folders = newPaths.map((p) => ({ name: path.basename(p), path: p }));
+  console.log("[main] Watching folders:", watchedPaths);
 
-  return { name, path: folderPath };
+  return folders;
 });
 
 ipcMain.handle("search", async (_, query: string) => {

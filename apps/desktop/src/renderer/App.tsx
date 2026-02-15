@@ -67,14 +67,16 @@ export default function App() {
     };
   }, []);
 
-  // Handles adding a new folder
+  // Handles adding new folders (supports multi-selection)
   const handleAddFolder = async () => {
-    const folder = await window.api.selectFolder();
-    if (!folder) return;
+    const newFolders = await window.api.selectFolder();
+    if (!newFolders || newFolders.length === 0) return;
 
-    // Don't add duplicates
-    if (folders.some((f) => f.path === folder.path)) return;
-    setFolders((prev) => [...prev, folder]);
+    setFolders((prev) => {
+      const existingPaths = new Set(prev.map((f) => f.path));
+      const unique = newFolders.filter((f) => !existingPaths.has(f.path));
+      return [...prev, ...unique];
+    });
   };
 
   // Handles searches — returns initial results instantly, Gemini ranking happens in background
