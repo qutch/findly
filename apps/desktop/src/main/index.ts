@@ -1,8 +1,10 @@
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, globalShortcut } from "electron";
 import path from "path";
 import { FileWatcherService } from "@findly/watcher";
 console.log("[main] Electron main loaded");
 let fileWatcher: FileWatcherService | null = null;
+let mainWindow: BrowserWindow | null = null;
+let spotlightWindow: BrowserWindow | null = null;
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -24,6 +26,76 @@ function createWindow() {
     win.loadURL(process.env.ELECTRON_RENDERER_URL);
   } else {
     win.loadFile(path.join(__dirname, "../renderer/index.html"));
+  }
+
+  mainWindow = win;
+}
+
+function createSpotlightWindow() {
+  spotlightWindow = new BrowserWindow({
+    width: 680,
+    height: 72,
+    show: false,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    movable: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    titleBarStyle: "customButtonsOnHover",
+    vibrancy: "under-window",
+    visualEffectState: "active",
+    backgroundColor: "#00000000",
+    webPreferences: {
+      preload: path.join(__dirname, "../preload/index.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  // Center on screen
+  spotlightWindow.center();
+
+  if (process.env.ELECTRON_RENDERER_URL) {
+    spotlightWindow.loadURL(
+      process.env.ELECTRON_RENDERER_URL + "/spotlight.html"
+    );
+  } else {
+    spotlightWindow.loadFile(
+      path.join(__dirname, "../renderer/spotlight.html")
+    );
+  }
+
+  spotlightWindow.on("blur", () => {
+    hideSpotlight();
+  });
+
+  spotlightWindow.on("closed", () => {
+    spotlightWindow = null;
+  });
+}
+
+function toggleSpotlight() {
+  if (!spotlightWindow) {
+    createSpotlightWindow();
+  }
+
+  if (spotlightWindow!.isVisible()) {
+    hideSpotlight();
+  } else {
+    // Reset size to just the search bar before showing
+    spotlightWindow!.setSize(680, 72);
+    spotlightWindow!.center();
+    spotlightWindow!.show();
+    spotlightWindow!.focus();
+  }
+}
+
+function hideSpotlight() {
+  if (spotlightWindow && spotlightWindow.isVisible()) {
+    spotlightWindow.hide();
+    // Tell renderer to reset state
+    spotlightWindow.webContents.send("spotlight-reset");
   }
 }
 
@@ -82,13 +154,42 @@ ipcMain.handle("search", async (_, query: string) => {
   }
 });
 
+// ── IPC: Spotlight ────────────────────────────────────
+
+ipcMain.handle("hide-spotlight", () => {
+  hideSpotlight();
+});
+
+ipcMain.on("spotlight-resize", (_, height: number) => {
+  if (spotlightWindow) {
+    const [width] = spotlightWindow.getSize();
+    const maxHeight = Math.min(height, 520);
+    spotlightWindow.setSize(width, maxHeight);
+    spotlightWindow.center();
+  }
+});
+
 // ── App Lifecycle ─────────────────────────────────────
 
 app.whenReady().then(() => {
   createWindow();
+  createSpotlightWindow();
+
+  // Register global shortcut: Cmd+Shift+Space (macOS) / Ctrl+Shift+Space (others)
+  const shortcut =
+    process.platform === "darwin"
+      ? "CommandOrControl+Shift+Space"
+      : "Ctrl+Shift+Space";
+
+  globalShortcut.register(shortcut, () => {
+    toggleSpotlight();
+  });
+
+  console.log(`[main] Spotlight shortcut registered: ${shortcut}`);
 });
 
 app.on("before-quit", async () => {
+  globalShortcut.unregisterAll();
   if (fileWatcher) {
     await fileWatcher.stop();
   }

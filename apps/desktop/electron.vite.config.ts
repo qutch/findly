@@ -27,7 +27,10 @@ export default defineConfig({
     build: {
       outDir: "dist/renderer",
       rollupOptions: {
-        input: "src/renderer/index.html",
+        input: {
+          index: "src/renderer/index.html",
+          spotlight: "src/renderer/spotlight.html",
+        },
       },
     },
     plugins: [react()],
