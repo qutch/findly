@@ -451,3 +451,70 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+class FileSummaryService:
+    """
+    Service to generate a detailed summary for a single file using Gemini API.
+    Used for the file preview panel.
+    """
+
+    def __init__(self):
+        dotenv_path = os.path.join(os.path.dirname(__file__), '../../.env')
+        load_dotenv(dotenv_path)
+        api_key = os.getenv('GEMINI_API_KEY') or ''
+        self.client = genai.Client(api_key=api_key)
+        self.model_name = 'gemini-3-flash-preview'
+
+    async def generate_summary(self, file_path: str) -> dict:
+        """
+        Generate a 2-4 sentence summary for a file.
+        Returns dict with 'summary' key.
+        """
+        from parsers import FileProcessor
+
+        # Try cache first, then parse
+        cached = FileProcessor.loadCachedFile(file_path)
+        if cached:
+            content = cached.get('content', '')
+        else:
+            try:
+                parsed = FileProcessor.parseFile(file_path)
+                content = parsed.get('content', '')
+            except Exception:
+                content = ''
+
+        # Truncate content for token limits
+        max_content = 2000
+        truncated = content[:max_content] + ('...' if len(content) > max_content else '') if content else 'No content available'
+
+        prompt = f"""You are a file summary assistant. Given the content of a file, provide a concise but informative summary.
+
+File Path: {file_path}
+File Name: {os.path.basename(file_path)}
+
+Content:
+{truncated}
+
+Instructions:
+1. Write a summary that is 2-4 sentences long
+2. Describe what the file contains and its purpose
+3. Be descriptive and informative — this helps the user decide if they want to open the file
+4. Return ONLY the summary text, no formatting, no quotes, no prefixes
+5. Do not start with "This file" — vary your sentence starters
+
+Your Summary:"""
+
+        try:
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    thinking_config=types.ThinkingConfig(thinking_level="minimal")
+                ),
+            )
+            summary = response.text.strip()
+            return {'summary': summary}
+        except Exception as e:
+            print(f'Error generating summary: {e}')
+            return {'summary': f'{os.path.basename(file_path)} — unable to generate summary at this time.'}

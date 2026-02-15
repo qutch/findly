@@ -4,28 +4,48 @@ from pineconeService import PineconeService
 import os
 from dotenv import load_dotenv
 
-# Main driver of the python services: search functionality
-async def searchDB(query: str):
+
+async def searchDB_initial(query: str):
     """
-    Search for files matching the query and return ranked results.
+    Fast initial search: query Pinecone and return file candidates immediately
+    without waiting for Gemini ranking. This gives instant results to the user.
     """
     pc = PineconeService()
 
-    # Step 1: Query Pinecone for relevant file names based on the search query
+    # Query Pinecone for relevant files based on the search query
     fileMetadatas = pc.query(query)
-    fileNames = [metadata['filePath'] for metadata in fileMetadatas if 'filePath' in metadata]
 
-    # Step 2: Send file names to ranking service to get ranked list of File objects
-    files = FileProcessor.sendToRankingService(fileNames)
+    # Return basic file info for immediate display (no AI summary yet)
+    return [
+        {
+            'filePath': m.get('filePath', ''),
+            'fileName': m.get('fileName', ''),
+            'fileType': m.get('fileType', ''),
+            'fileSize': m.get('fileSize', 0),
+            'sizeReadable': m.get('sizeReadable', ''),
+            'lastModifiedReadable': m.get('lastModifiedReadable', ''),
+            'lastAccessedReadable': m.get('lastAccessedReadable', ''),
+            'score': m.get('score', 0),
+            'summary': '',
+            'rank': idx + 1,
+        }
+        for idx, m in enumerate(fileMetadatas)
+    ]
 
-    # Step 3: Rank files using Gemini API
-    
+
+async def rankFiles(query: str, filePaths: list[str]):
+    """
+    Background ranking: send file candidates to Gemini for intelligent
+    re-ranking and summary generation. Called after initial results are shown.
+    """
+    # Parse files and prepare for ranking
+    files = FileProcessor.sendToRankingService(filePaths)
+
     # Load API key
     dotenv_path = os.path.join(os.path.dirname(__file__), '../../.env')
     load_dotenv(dotenv_path)
-    
+
     ranking_service = FileRankingService(os.getenv('GEMINI_API_KEY') or '')
     ranking_result = ranking_service.rank_files_sync(query, files)
-    
-    # Step 4: Return ranked files to Electron app for display
+
     return ranking_result['rankedFiles']

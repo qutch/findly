@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ResultItem } from "./components/ResultItem";
+import { FilePreview } from "./components/FilePreview";
 import type { SearchResult } from "./types";
 
 export function SpotlightApp() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRanking, setIsRanking] = useState(false);
+  const [previewResult, setPreviewResult] = useState<SearchResult | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -13,14 +16,39 @@ export function SpotlightApp() {
   useEffect(() => {
     inputRef.current?.focus();
 
-    const cleanup = window.api.onSpotlightReset(() => {
+    const cleanupReset = window.api.onSpotlightReset(() => {
       setQuery("");
       setResults([]);
       setIsLoading(false);
+      setIsRanking(false);
+      setPreviewResult(null);
       inputRef.current?.focus();
     });
 
-    return cleanup;
+    const cleanupStarted = window.api.onRankingStarted(() => {
+      setIsRanking(true);
+    });
+
+    const cleanupRanked = window.api.onRankedResults((rankedResults) => {
+      setIsRanking(false);
+      if (rankedResults && rankedResults.length > 0) {
+        setResults(rankedResults);
+        // Update preview if it's open — sync the summary
+        setPreviewResult((prev) => {
+          if (!prev) return null;
+          const updated = rankedResults.find(
+            (r: SearchResult) => r.file?.path === prev.file?.path
+          );
+          return updated ?? prev;
+        });
+      }
+    });
+
+    return () => {
+      cleanupReset();
+      cleanupStarted();
+      cleanupRanked();
+    };
   }, []);
 
   // Resize the window when results change
@@ -35,13 +63,14 @@ export function SpotlightApp() {
 
   useEffect(() => {
     resizeWindow();
-  }, [results, isLoading, resizeWindow]);
+  }, [results, isLoading, isRanking, previewResult, resizeWindow]);
 
   const handleSearch = async () => {
     const trimmed = query.trim();
     if (!trimmed) return;
 
     setIsLoading(true);
+    setIsRanking(false);
     setResults([]);
     resizeWindow();
 
@@ -113,6 +142,14 @@ export function SpotlightApp() {
         </div>
       )}
 
+      {/* Ranking indicator */}
+      {!isLoading && isRanking && (
+        <div className="spotlight-ranking">
+          <div className="spotlight-ranking-spinner" />
+          <span>Advanced analysis underway</span>
+        </div>
+      )}
+
       {/* Results */}
       {!isLoading && results.length > 0 && (
         <div className="spotlight-results">
@@ -120,6 +157,8 @@ export function SpotlightApp() {
             <ResultItem
               key={`${result.file?.path}-${index}`}
               result={result}
+              animationDelay={index * 40}
+              onPreview={setPreviewResult}
             />
           ))}
         </div>
@@ -128,6 +167,15 @@ export function SpotlightApp() {
       {/* No results */}
       {!isLoading && results.length === 0 && query.length > 0 && results !== null && (
         <div className="spotlight-hint">Press Enter to search</div>
+      )}
+
+      {/* File Preview */}
+      {previewResult && (
+        <FilePreview
+          result={previewResult}
+          onClose={() => setPreviewResult(null)}
+          isRanking={isRanking}
+        />
       )}
     </div>
   );

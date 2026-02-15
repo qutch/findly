@@ -1,9 +1,17 @@
 """File parsers — PDF, text, code extraction."""
 import pymupdf
 import os
+import json
 from docx import Document
 from pptx import Presentation
 from datetime import datetime
+
+LOCAL_DUMP_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "localdump.json")
+
+# In-memory cache buffer — avoids reading/writing JSON on every storeContent call
+# Each entry: { "content": str, "metadata": dict }
+_cache_buffer: dict[str, dict] = {}
+_cache_dirty: bool = False
 
 class File:
     def __init__(self, fileName: str):
@@ -86,6 +94,95 @@ class FileProcessor:
         }
 
     @staticmethod
+    def clearCache() -> None:
+        """
+        Clear the local content cache (both in-memory buffer and localdump.json on disk).
+        Call this once at service startup so each session starts fresh.
+        """
+        global _cache_buffer, _cache_dirty
+        _cache_buffer = {}
+        _cache_dirty = False
+
+        with open(LOCAL_DUMP_PATH, 'w', encoding='utf-8') as f:
+            json.dump({}, f)
+
+        print("Cleared localdump.json cache for new session")
+
+    @staticmethod
+    def storeContent(fileName: str, content: str, metadata: dict = None) -> None:
+        """
+        Cache parsed content and metadata into the in-memory buffer.
+        Uses the absolute file path as key to avoid collisions.
+        """
+        global _cache_buffer, _cache_dirty
+        file_path = os.path.abspath(fileName)
+        _cache_buffer[file_path] = {
+            "content": content,
+            "metadata": metadata or {}
+        }
+        _cache_dirty = True
+
+    @staticmethod
+    def flushCache() -> None:
+        """
+        Write the in-memory cache buffer to localdump.json.
+        Called after a batch of files has been parsed.
+        """
+        global _cache_buffer, _cache_dirty
+        if not _cache_dirty:
+            return
+
+        # Snapshot the buffer to avoid "dictionary changed size during iteration"
+        # when concurrent background tasks call storeContent while we serialize.
+        snapshot = dict(_cache_buffer)
+
+        with open(LOCAL_DUMP_PATH, 'w', encoding='utf-8') as f:
+            json.dump(snapshot, f, ensure_ascii=False, indent=2)
+
+        _cache_dirty = False
+        print(f"Flushed {len(snapshot)} entries to localdump.json")
+
+    @staticmethod
+    def loadCachedFile(fileName: str) -> dict | None:
+        """
+        Load cached content and metadata — checks in-memory buffer first, falls back to disk.
+        Returns {"content": str, "metadata": dict} if found, None otherwise.
+        """
+        global _cache_buffer
+        file_path = os.path.abspath(fileName)
+
+        # Check in-memory buffer first (fastest)
+        if file_path in _cache_buffer:
+            return _cache_buffer[file_path]
+
+        # Fall back to disk
+        if not os.path.exists(LOCAL_DUMP_PATH):
+            return None
+
+        try:
+            with open(LOCAL_DUMP_PATH, 'r', encoding='utf-8') as f:
+                text = f.read().strip()
+                if not text:
+                    return None
+                dump = json.loads(text)
+                # Populate buffer from disk for future lookups
+                _cache_buffer.update(dump)
+                return dump.get(file_path)
+        except (json.JSONDecodeError, IOError):
+            return None
+
+    @staticmethod
+    def loadContent(fileName: str) -> str | None:
+        """
+        Load cached content only. Convenience wrapper around loadCachedFile.
+        Returns the content string if found, None otherwise.
+        """
+        cached = FileProcessor.loadCachedFile(fileName)
+        if cached is not None:
+            return cached.get("content")
+        return None
+
+    @staticmethod
     def parseFile(fileName: str) -> dict:
         """
         Parse a file and extract both metadata and content.
@@ -111,6 +208,11 @@ class FileProcessor:
         else:
             raise ValueError(f"Unsupported file type: {file_type}")
 
+        # Cache the parsed content and metadata for later quick reference
+        FileProcessor.storeContent(fileName, content, metadata)
+        # Flush to disk after each parse so content is persisted
+        FileProcessor.flushCache()
+
         return {
             "metadata": metadata,
             "content": content
@@ -122,10 +224,21 @@ class FileProcessor:
     def sendToRankingService(fileNames: list[str]) -> list[File]:
         """
         Send files to ranking service for processing and return ranked list of File objects.
+        Uses cached content from localdump.json when available to avoid re-parsing.
         """
         files = []
         for fileName in fileNames:
-            files.append(File(fileName))
+            print(f"Processing file for ranking: {fileName}")
+            cached = FileProcessor.loadCachedFile(fileName)
+            if cached is not None:
+                # Build File from cache — skip expensive re-parse and os.stat
+                f = object.__new__(File)
+                f.metadata = cached["metadata"]
+                f.content = cached["content"]
+                files.append(f)
+            else:
+                # Cache miss — full parse (which also populates the cache)
+                files.append(File(fileName))
 
         return files
 

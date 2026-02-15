@@ -3,9 +3,10 @@ import type { SearchResult } from "../types";
 
 interface ResultsListProps {
     results: SearchResult[];
+    onPreview?: (result: SearchResult) => void;
 }
 
-export function ResultsList({ results }: ResultsListProps) {
+export function ResultsList({ results, onPreview }: ResultsListProps) {
     if (!results || results.length === 0) return null;
 
     return (
@@ -14,6 +15,8 @@ export function ResultsList({ results }: ResultsListProps) {
         <ResultItem
             key={`${result.file?.path ?? "file"}-${index}`}
             result={result}
+            animationDelay={index * 40}
+            onPreview={onPreview}
         />
         ))}
     </div>

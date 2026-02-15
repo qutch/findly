@@ -5,14 +5,18 @@ import "./ResultItem.css";
 
 interface ResultItemProps {
   result: SearchResult;
+  animationDelay?: number;
+  onPreview?: (result: SearchResult) => void;
 }
 
-export function ResultItem({ result }: ResultItemProps) {
+export function ResultItem({ result, animationDelay = 0, onPreview }: ResultItemProps) {
   const fileName = result.file?.name ?? "Untitled";
   const filePath = result.file?.path ?? "";
 
   const handleClick = () => {
-    if (filePath) {
+    if (onPreview) {
+      onPreview(result);
+    } else if (filePath) {
       window.api.openFile(filePath);
     }
   };
@@ -32,7 +36,14 @@ export function ResultItem({ result }: ResultItemProps) {
   };
 
   return (
-    <div className="result-item" onClick={handleClick} onKeyDown={handleKeyDown} role="button" tabIndex={0}>
+    <div
+      className="result-item result-item--animated"
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+      style={{ animationDelay: `${animationDelay}ms` }}
+    >
       <div className="result-item__icon">
         <FileTypeIcon filename={fileName} size={16} />
       </div>
