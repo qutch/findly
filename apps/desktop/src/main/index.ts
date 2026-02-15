@@ -140,22 +140,67 @@ ipcMain.handle("select-folder", async () => {
 
 ipcMain.handle("search", async (_, query: string) => {
   try {
+    // Step 1: Get initial results from Pinecone (fast, no Gemini)
     const response = await fetch(
-      `http://localhost:8100/search?query=${query}`
+      `http://localhost:8100/search?query=${encodeURIComponent(query)}`
     );
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = (await response.json()) as { results: any[] };
 
-    return data.results.map((item: any) => ({
+    const initialResults = data.results.map((item: any) => ({
       file: {
-        name: path.basename(item.filePath),
+        name: item.fileName || path.basename(item.filePath),
         path: item.filePath,
         folder: path.dirname(item.filePath),
       },
-      summary: item.summary,
+      summary: "",
     }));
+
+    // Step 2: Kick off Gemini ranking in the background
+    const filePaths = data.results
+      .map((item: any) => item.filePath)
+      .filter(Boolean);
+
+    if (filePaths.length > 0) {
+      // Notify renderer that ranking has started
+      mainWindow?.webContents.send("search-ranking-started");
+      spotlightWindow?.webContents.send("search-ranking-started");
+
+      fetch("http://localhost:8100/rank", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, filePaths }),
+      })
+        .then(async (rankResponse) => {
+          if (!rankResponse.ok) throw new Error("Ranking request failed");
+          const rankData = (await rankResponse.json()) as { results: any[] };
+          const rankedResults = rankData.results.map((item: any) => ({
+            file: {
+              name: path.basename(item.filePath),
+              path: item.filePath,
+              folder: path.dirname(item.filePath),
+            },
+            summary: item.summary,
+          }));
+          // Send ranked results to all windows
+          mainWindow?.webContents.send("search-ranked-results", rankedResults);
+          spotlightWindow?.webContents.send(
+            "search-ranked-results",
+            rankedResults
+          );
+        })
+        .catch((err) => {
+          console.error("[main] Ranking error:", err);
+          // Signal ranking is done (even on failure) so indicator goes away
+          mainWindow?.webContents.send("search-ranked-results", null);
+          spotlightWindow?.webContents.send("search-ranked-results", null);
+        });
+    }
+
+    // Return initial results immediately — no waiting for Gemini
+    return initialResults;
   } catch (error) {
     console.error("[main] Search error:", error);
     return [];

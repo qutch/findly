@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { SearchBar } from "./components/SearchBar";
 import { ResultsList } from "./components/ResultsList";
@@ -9,6 +9,26 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRanking, setIsRanking] = useState(false);
+
+  // Listen for background ranking events from main process
+  useEffect(() => {
+    const cleanupStarted = window.api.onRankingStarted(() => {
+      setIsRanking(true);
+    });
+
+    const cleanupRanked = window.api.onRankedResults((rankedResults) => {
+      setIsRanking(false);
+      if (rankedResults && rankedResults.length > 0) {
+        setResults(rankedResults);
+      }
+    });
+
+    return () => {
+      cleanupStarted();
+      cleanupRanked();
+    };
+  }, []);
 
   // Handles adding a new folder
   const handleAddFolder = async () => {
@@ -20,10 +40,11 @@ export default function App() {
     setFolders((prev) => [...prev, folder]);
   };
 
-  // Handles searches
+  // Handles searches — returns initial results instantly, Gemini ranking happens in background
   const handleSearch = async () => {
     if (!query.trim()) return [];
     setIsLoading(true);
+    setIsRanking(false);
     try {
       const results = await window.api.search(query);
       setResults(results);
@@ -61,6 +82,12 @@ export default function App() {
               onSearch={handleSearch}
               isLoading={isLoading}
             />
+          )}
+          {isRanking && (
+            <div className="ranking-indicator">
+              <div className="ranking-spinner" />
+              <span className="ranking-text">Advanced analysis underway</span>
+            </div>
           )}
           <ResultsList results={results} />
         </div>

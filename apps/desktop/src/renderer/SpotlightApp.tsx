@@ -6,6 +6,7 @@ export function SpotlightApp() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRanking, setIsRanking] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -13,14 +14,30 @@ export function SpotlightApp() {
   useEffect(() => {
     inputRef.current?.focus();
 
-    const cleanup = window.api.onSpotlightReset(() => {
+    const cleanupReset = window.api.onSpotlightReset(() => {
       setQuery("");
       setResults([]);
       setIsLoading(false);
+      setIsRanking(false);
       inputRef.current?.focus();
     });
 
-    return cleanup;
+    const cleanupStarted = window.api.onRankingStarted(() => {
+      setIsRanking(true);
+    });
+
+    const cleanupRanked = window.api.onRankedResults((rankedResults) => {
+      setIsRanking(false);
+      if (rankedResults && rankedResults.length > 0) {
+        setResults(rankedResults);
+      }
+    });
+
+    return () => {
+      cleanupReset();
+      cleanupStarted();
+      cleanupRanked();
+    };
   }, []);
 
   // Resize the window when results change
@@ -35,13 +52,14 @@ export function SpotlightApp() {
 
   useEffect(() => {
     resizeWindow();
-  }, [results, isLoading, resizeWindow]);
+  }, [results, isLoading, isRanking, resizeWindow]);
 
   const handleSearch = async () => {
     const trimmed = query.trim();
     if (!trimmed) return;
 
     setIsLoading(true);
+    setIsRanking(false);
     setResults([]);
     resizeWindow();
 
@@ -113,6 +131,14 @@ export function SpotlightApp() {
         </div>
       )}
 
+      {/* Ranking indicator */}
+      {!isLoading && isRanking && (
+        <div className="spotlight-ranking">
+          <div className="spotlight-ranking-spinner" />
+          <span>Advanced analysis underway</span>
+        </div>
+      )}
+
       {/* Results */}
       {!isLoading && results.length > 0 && (
         <div className="spotlight-results">
@@ -120,6 +146,7 @@ export function SpotlightApp() {
             <ResultItem
               key={`${result.file?.path}-${index}`}
               result={result}
+              animationDelay={index * 40}
             />
           ))}
         </div>

@@ -14,6 +14,7 @@ export function ResultsList({ results }: ResultsListProps) {
         <ResultItem
             key={`${result.file?.path ?? "file"}-${index}`}
             result={result}
+            animationDelay={index * 40}
         />
         ))}
     </div>

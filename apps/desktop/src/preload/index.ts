@@ -12,6 +12,16 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.on("spotlight-reset", handler);
     return () => ipcRenderer.removeListener("spotlight-reset", handler);
   },
+  onRankingStarted: (callback: () => void): (() => void) => {
+    const handler = () => callback();
+    ipcRenderer.on("search-ranking-started", handler);
+    return () => ipcRenderer.removeListener("search-ranking-started", handler);
+  },
+  onRankedResults: (callback: (results: any[] | null) => void): (() => void) => {
+    const handler = (_: any, results: any[] | null) => callback(results);
+    ipcRenderer.on("search-ranked-results", handler);
+    return () => ipcRenderer.removeListener("search-ranked-results", handler);
+  },
   openFile: (filePath: string): Promise<string> =>
     ipcRenderer.invoke("open-file", filePath),
   showInFolder: (filePath: string): Promise<void> =>
