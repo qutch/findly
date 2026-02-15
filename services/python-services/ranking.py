@@ -396,10 +396,10 @@ def main():
     files = [
         MockFile(
             metadata={
-                'fileName': 'math_homework.pdf',
-                'filePath': '/documents/school/math_homework.pdf',
-                'fileType': 'pdf',
-                'fileSize': 245678,
+                'fileName': 'math_homework-1.pdf',
+                'filePath': '/documents/school/math_homework-1.pdf',
+                'fileType': 'docx',
+                'fileSize': 245672,
                 'lastAccessedReadable': '2024-02-13T15:30:00Z',
                 'lastModifiedReadable': '2024-02-13T14:20:00Z'
             },
@@ -407,8 +407,8 @@ def main():
         ),
         MockFile(
             metadata={
-                'fileName': 'algebra_notes.docx',
-                'filePath': '/documents/school/algebra_notes.docx',
+                'fileName': 'math_homework-2.docx',
+                'filePath': '/documents/school/math_homework-2.docx',
                 'fileType': 'docx',
                 'fileSize': 123456,
                 'lastAccessedReadable': '2024-02-12T10:15:00Z',
@@ -429,7 +429,7 @@ def main():
         )
     ]
     
-    user_query = 'bring up the math hw I was working on yesterday'
+    user_query = 'bring up the math hw I was working on the latest'
     
     result = service.rank_files_sync(user_query, files)
     
