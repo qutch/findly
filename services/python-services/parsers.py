@@ -1,9 +1,11 @@
-"""File parsers — PDF, text, code extraction."""
+"""File parsers — PDF, text, code, and image (OCR) extraction."""
 import pymupdf
 import os
 import json
 from docx import Document
 from pptx import Presentation
+from PIL import Image
+import pytesseract
 from datetime import datetime
 
 LOCAL_DUMP_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "localdump.json")
@@ -55,6 +57,13 @@ class FileProcessor:
                 if hasattr(shape, "text"):
                     parts.append(shape.text)
         return "\n".join(parts)
+
+    # IMAGE OCR PARSER
+    @staticmethod
+    def parseImage(fileName: str) -> str:
+        img = Image.open(fileName)
+        text = pytesseract.image_to_string(img)
+        return text.strip()
 
     # Format bytes to human-readable format
     @staticmethod
@@ -205,6 +214,8 @@ class FileProcessor:
             content = FileProcessor.parseDocx(fileName)
         elif file_type == ".pptx":
             content = FileProcessor.parsePptx(fileName)
+        elif file_type in (".png", ".jpg", ".jpeg"):
+            content = FileProcessor.parseImage(fileName)
         else:
             raise ValueError(f"Unsupported file type: {file_type}")
 
