@@ -5,6 +5,7 @@ console.log("[main] Electron main loaded");
 let fileWatcher: FileWatcherService | null = null;
 let mainWindow: BrowserWindow | null = null;
 let spotlightWindow: BrowserWindow | null = null;
+let indexingPollTimer: ReturnType<typeof setInterval> | null = null;
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -99,6 +100,48 @@ function hideSpotlight() {
   }
 }
 
+function broadcastIndexingStatus(isIndexing: boolean, inProgress: number) {
+  const payload = {
+    isIndexing,
+    filesRemaining: inProgress,
+    totalFiles: inProgress,
+    completedFiles: 0,
+  };
+  mainWindow?.webContents.send("indexing-status", payload);
+  spotlightWindow?.webContents.send("indexing-status", payload);
+}
+
+async function pollIndexingStatus() {
+  try {
+    const response = await fetch("http://localhost:8100/indexing-status");
+    if (response.ok) {
+      const data = (await response.json()) as { inProgress: number };
+      const isIndexing = data.inProgress > 0;
+      broadcastIndexingStatus(isIndexing, data.inProgress);
+
+      // Stop polling once indexing is complete
+      if (!isIndexing && indexingPollTimer) {
+        clearInterval(indexingPollTimer);
+        indexingPollTimer = null;
+        console.log("[main] Indexing complete, stopped polling");
+      }
+    }
+  } catch {
+    // Backend not ready yet, ignore
+  }
+}
+
+function startIndexingPoll() {
+  // Clear any existing poll
+  if (indexingPollTimer) {
+    clearInterval(indexingPollTimer);
+  }
+  // Broadcast immediately that indexing has started
+  broadcastIndexingStatus(true, 1);
+  // Poll every 1 second
+  indexingPollTimer = setInterval(pollIndexingStatus, 1000);
+}
+
 // ── IPC: Folder Selection ─────────────────────────────
 
 ipcMain.handle("select-folder", async () => {
@@ -124,6 +167,9 @@ ipcMain.handle("select-folder", async () => {
   });
 
   fileWatcher.start();
+
+  // Start polling the backend for indexing status
+  startIndexingPoll();
 
   console.log("[main] Watching folder:", folderPath);
 
@@ -190,6 +236,10 @@ app.whenReady().then(() => {
 
 app.on("before-quit", async () => {
   globalShortcut.unregisterAll();
+  if (indexingPollTimer) {
+    clearInterval(indexingPollTimer);
+    indexingPollTimer = null;
+  }
   if (fileWatcher) {
     await fileWatcher.stop();
   }

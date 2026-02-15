@@ -12,4 +12,11 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.on("spotlight-reset", handler);
     return () => ipcRenderer.removeListener("spotlight-reset", handler);
   },
+  onIndexingStatus: (
+    callback: (status: { isIndexing: boolean; filesRemaining: number; totalFiles: number; completedFiles: number }) => void
+  ): (() => void) => {
+    const handler = (_event: any, status: any) => callback(status);
+    ipcRenderer.on("indexing-status", handler);
+    return () => ipcRenderer.removeListener("indexing-status", handler);
+  },
 });

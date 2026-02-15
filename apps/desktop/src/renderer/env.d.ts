@@ -8,6 +8,14 @@ declare global {
       hideSpotlight: () => Promise<void>;
       resizeSpotlight: (height: number) => void;
       onSpotlightReset: (callback: () => void) => () => void;
+      onIndexingStatus: (
+        callback: (status: {
+          isIndexing: boolean;
+          filesRemaining: number;
+          totalFiles: number;
+          completedFiles: number;
+        }) => void
+      ) => () => void;
     };
   }
 }

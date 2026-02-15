@@ -5,6 +5,9 @@ export function SpotlightApp() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isIndexing, setIsIndexing] = useState(false);
+  const [completedFiles, setCompletedFiles] = useState(0);
+  const [totalFiles, setTotalFiles] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -19,6 +22,16 @@ export function SpotlightApp() {
       inputRef.current?.focus();
     });
 
+    return cleanup;
+  }, []);
+
+  // Listen for indexing status
+  useEffect(() => {
+    const cleanup = window.api.onIndexingStatus((status) => {
+      setIsIndexing(status.isIndexing);
+      setCompletedFiles(status.completedFiles);
+      setTotalFiles(status.totalFiles);
+    });
     return cleanup;
   }, []);
 
@@ -38,7 +51,7 @@ export function SpotlightApp() {
 
   const handleSearch = async () => {
     const trimmed = query.trim();
-    if (!trimmed) return;
+    if (!trimmed || isIndexing) return;
 
     setIsLoading(true);
     setResults([]);
@@ -85,10 +98,11 @@ export function SpotlightApp() {
           ref={inputRef}
           type="text"
           className="spotlight-input"
-          placeholder="Findly Search..."
+          placeholder={isIndexing ? `Indexing... ${completedFiles}/${totalFiles}` : "Findly Search..."}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
+          disabled={isIndexing}
         />
         {query && (
           <button

@@ -122,10 +122,18 @@ class FileProcessor:
     def sendToRankingService(fileNames: list[str]) -> list[File]:
         """
         Send files to ranking service for processing and return ranked list of File objects.
+        Skips files that no longer exist on disk.
         """
         files = []
         for fileName in fileNames:
-            files.append(File(fileName))
+            if not os.path.exists(fileName):
+                print(f"[parsers] Skipping missing file: {fileName}")
+                continue
+            try:
+                files.append(File(fileName))
+            except Exception as e:
+                print(f"[parsers] Error processing {fileName}: {e}")
+                continue
 
         return files
 
