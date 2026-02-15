@@ -1,15 +1,35 @@
 export interface Folder {
-    name: string;
-    path: string;
+  name: string;
+  path: string;
 }
 
-export interface File {
-    name: string;
-    path: string;
-    folder: string;
+export type FolderStatus = "indexing" | "ready" | "error";
+
+export interface FolderState extends Folder {
+  status: FolderStatus;
+  indexedFiles: number;
+  lastEventAt: number | null;
+  lastError?: string;
 }
+
+export type SearchState = "idle" | "typing" | "searching" | "results" | "empty" | "error";
 
 export interface SearchResult {
-    file: File;
-    summary: string;
+  filePath?: string;
+  summary?: string;
+  rank?: number;
+  fileName?: string;
+  fileType?: string;
+  lastModifiedReadable?: string;
+  score?: number;
+}
+
+export interface ResultItem {
+  id: string;
+  fileName: string;
+  filePath: string;
+  fileType: string;
+  summary: string;
+  rank: number;
+  modifiedLabel: string;
 }

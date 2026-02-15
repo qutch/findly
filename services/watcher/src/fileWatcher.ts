@@ -5,6 +5,7 @@ import { onFileAdded, onFileChanged } from './handlers.js';
 export interface FileWatcherOptions {
   paths: string[];
   metadataCheckIntervalMs?: number;
+  onFileProcessEvent?: (event: FileProcessEvent) => void;
 }
 
 type FileMetadata = {
@@ -12,9 +13,20 @@ type FileMetadata = {
   size: number;
 };
 
+export type FileProcessPhase = 'add' | 'change';
+export type FileProcessStatus = 'processing' | 'indexed' | 'error';
+
+export interface FileProcessEvent {
+  filePath: string;
+  phase: FileProcessPhase;
+  status: FileProcessStatus;
+  error?: string;
+}
+
 export class FileWatcherService {
   private readonly paths: string[];
   private readonly metadataCheckIntervalMs: number;
+  private readonly onFileProcessEvent?: (event: FileProcessEvent) => void;
   private readonly knownFiles = new Map<string, FileMetadata>();
   private watcher: FSWatcher | null = null;
   private metadataTimer: ReturnType<typeof setInterval> | null = null;
@@ -24,7 +36,8 @@ export class FileWatcherService {
     this.paths = options.paths;
     this.metadataCheckIntervalMs =
       options.metadataCheckIntervalMs ??
-      Number(process.env.WATCH_METADATA_INTERVAL_MS ?? 300000);
+      Number(process.env.WATCH_METADATA_INTERVAL_MS ?? 1000);
+    this.onFileProcessEvent = options.onFileProcessEvent;
   }
 
   start(): void {
@@ -83,8 +96,16 @@ export class FileWatcherService {
 
       this.knownFiles.set(filePath, metadata);
       console.log('[watcher] File added:', filePath);
+      this.onFileProcessEvent?.({ filePath, phase: 'add', status: 'processing' });
       await onFileAdded(filePath);
+      this.onFileProcessEvent?.({ filePath, phase: 'add', status: 'indexed' });
     } catch (error) {
+      this.onFileProcessEvent?.({
+        filePath,
+        phase: 'add',
+        status: 'error',
+        error: error instanceof Error ? error.message : String(error),
+      });
       console.error('[watcher] Failed to process added file:', filePath, error);
     }
   }
@@ -96,8 +117,16 @@ export class FileWatcherService {
 
       this.knownFiles.set(filePath, metadata);
       console.log('[watcher] File changed:', filePath);
+      this.onFileProcessEvent?.({ filePath, phase: 'change', status: 'processing' });
       await onFileChanged(filePath);
+      this.onFileProcessEvent?.({ filePath, phase: 'change', status: 'indexed' });
     } catch (error) {
+      this.onFileProcessEvent?.({
+        filePath,
+        phase: 'change',
+        status: 'error',
+        error: error instanceof Error ? error.message : String(error),
+      });
       console.error('[watcher] Failed to process changed file:', filePath, error);
     }
   }
@@ -126,7 +155,9 @@ export class FileWatcherService {
 
         this.knownFiles.set(filePath, currentMetadata);
         console.log('[watcher] Metadata changed, reprocessing file:', filePath);
+        this.onFileProcessEvent?.({ filePath, phase: 'change', status: 'processing' });
         await onFileChanged(filePath);
+        this.onFileProcessEvent?.({ filePath, phase: 'change', status: 'indexed' });
       }
     } catch (error) {
       console.error('[watcher] Metadata check failed:', error);

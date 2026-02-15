@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from parsers import FileProcessor
+from search import search as run_search
 
 app = FastAPI()
 
@@ -20,17 +21,26 @@ async def health():
 @app.post("/process-file")
 async def process_file(request: ProcessFileRequest):
     try:
+        print(f"[docproc] /process-file start path='{request.filePath}'")
         FileProcessor.sendToPinecone(request.filePath)
+        print(f"[docproc] /process-file success path='{request.filePath}'")
         return {"status": "processed", "file": request.filePath}
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"File not found: {request.filePath}")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        print(f"[docproc] /process-file error path='{request.filePath}' error='{e}'")
         raise HTTPException(status_code=500, detail=str(e))
 
 # Called from electron app when user clicks "Search" button, with the search query as a parameter
 @app.get("/search")
 async def search(query: str):
-    # For now, just return the query back to the app. In a real implementation, this would trigger the search process.
-    return {"status": "searching", "query": query}
+    try:
+        print(f"[docproc] /search start query='{query}'")
+        return run_search(query)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(f"[docproc] /search error query='{query}' error='{e}'")
+        raise HTTPException(status_code=500, detail=str(e))

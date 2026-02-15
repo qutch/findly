@@ -192,8 +192,21 @@ class FileProcessor:
         """
         Full pipeline to parse a file, prepare it, and send it to Pinecone.
         """
-        preparedFiles = FileProcessor.prepareForPinecone(fileName)
-        print(fileName)
-        print(preparedFiles)
-        
-        # Call Pinecone Service to upsert chunks and metadata (not implemented here)
+        print(f"[docproc] sendToPinecone start file='{fileName}'")
+        prepared_file = FileProcessor.prepareForPinecone(fileName)
+        metadata = prepared_file["metadata"]
+        chunks = prepared_file["chunks"]
+        print(
+            "[docproc] prepared for pinecone",
+            f"chunks={len(chunks)}",
+            f"fileType={metadata.get('fileType')}",
+        )
+
+        # Import lazily to keep parser-only workflows usable even if vector deps are not installed.
+        from pineconeService import PinconeService
+
+        file_path = metadata.get("filePath", os.path.abspath(fileName))
+        file_id = file_path.replace(os.sep, "_")
+        service = PinconeService()
+        service.indexFile(chunks=chunks, metadata=metadata, file_id=file_id)
+        print(f"[docproc] sendToPinecone complete file='{fileName}'")
