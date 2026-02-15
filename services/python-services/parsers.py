@@ -2,8 +2,8 @@
 import pymupdf
 import os
 import json
-from docx import Document
-from pptx import Presentation
+import zipfile
+from lxml import etree
 from PIL import Image
 import pytesseract
 from datetime import datetime
@@ -41,21 +41,37 @@ class FileProcessor:
         with open(fileName, 'r', encoding='utf-8', errors='ignore') as f:
             return f.read()
 
-    # DOCX PARSER
+    # DOCX PARSER — direct XML extraction (faster than python-docx)
     @staticmethod
     def parseDocx(fileName: str) -> str:
-        doc = Document(fileName)
-        return "\n".join(p.text for p in doc.paragraphs)
+        ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+        with zipfile.ZipFile(fileName) as z:
+            xml = z.read("word/document.xml")
+        tree = etree.fromstring(xml)
+        paragraphs = []
+        for p in tree.iterfind(".//w:p", ns):
+            texts = [t.text for t in p.iterfind(".//w:t", ns) if t.text]
+            if texts:
+                paragraphs.append("".join(texts))
+        return "\n".join(paragraphs)
 
-    # PPTX PARSER
+    # PPTX PARSER — direct XML extraction (faster than python-pptx)
     @staticmethod
     def parsePptx(fileName: str) -> str:
-        pres = Presentation(fileName)
+        ns = {"a": "http://schemas.openxmlformats.org/drawingml/2006/main"}
         parts = []
-        for slide in pres.slides:
-            for shape in slide.shapes:
-                if hasattr(shape, "text"):
-                    parts.append(shape.text)
+        with zipfile.ZipFile(fileName) as z:
+            slide_names = sorted(
+                n for n in z.namelist()
+                if n.startswith("ppt/slides/slide") and n.endswith(".xml")
+            )
+            for name in slide_names:
+                xml = z.read(name)
+                tree = etree.fromstring(xml)
+                for p in tree.iterfind(".//a:p", ns):
+                    texts = [r.text for r in p.iterfind(".//a:t", ns) if r.text]
+                    if texts:
+                        parts.append("".join(texts))
         return "\n".join(parts)
 
     # IMAGE OCR PARSER
