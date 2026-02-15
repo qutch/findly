@@ -6,14 +6,17 @@ import "./ResultItem.css";
 interface ResultItemProps {
   result: SearchResult;
   animationDelay?: number;
+  onPreview?: (result: SearchResult) => void;
 }
 
-export function ResultItem({ result, animationDelay = 0 }: ResultItemProps) {
+export function ResultItem({ result, animationDelay = 0, onPreview }: ResultItemProps) {
   const fileName = result.file?.name ?? "Untitled";
   const filePath = result.file?.path ?? "";
 
   const handleClick = () => {
-    if (filePath) {
+    if (onPreview) {
+      onPreview(result);
+    } else if (filePath) {
       window.api.openFile(filePath);
     }
   };

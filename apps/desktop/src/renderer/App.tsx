@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { SearchBar } from "./components/SearchBar";
 import { ResultsList } from "./components/ResultsList";
+import { FilePreview } from "./components/FilePreview";
 import type { Folder, SearchResult, File } from "./types";
 
 export default function App() {
@@ -10,6 +11,7 @@ export default function App() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRanking, setIsRanking] = useState(false);
+  const [previewResult, setPreviewResult] = useState<SearchResult | null>(null);
 
   // Listen for background ranking events from main process
   useEffect(() => {
@@ -21,6 +23,14 @@ export default function App() {
       setIsRanking(false);
       if (rankedResults && rankedResults.length > 0) {
         setResults(rankedResults);
+        // Update preview if it's open — sync the summary
+        setPreviewResult((prev) => {
+          if (!prev) return null;
+          const updated = rankedResults.find(
+            (r: SearchResult) => r.file?.path === prev.file?.path
+          );
+          return updated ?? prev;
+        });
       }
     });
 
@@ -89,9 +99,16 @@ export default function App() {
               <span className="ranking-text">Advanced analysis underway</span>
             </div>
           )}
-          <ResultsList results={results} />
+          <ResultsList results={results} onPreview={setPreviewResult} />
         </div>
       </main>
+      {previewResult && (
+        <FilePreview
+          result={previewResult}
+          onClose={() => setPreviewResult(null)}
+          isRanking={isRanking}
+        />
+      )}
     </div>
   );
 }

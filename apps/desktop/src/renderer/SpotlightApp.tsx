@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ResultItem } from "./components/ResultItem";
+import { FilePreview } from "./components/FilePreview";
 import type { SearchResult } from "./types";
 
 export function SpotlightApp() {
@@ -7,6 +8,7 @@ export function SpotlightApp() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRanking, setIsRanking] = useState(false);
+  const [previewResult, setPreviewResult] = useState<SearchResult | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -19,6 +21,7 @@ export function SpotlightApp() {
       setResults([]);
       setIsLoading(false);
       setIsRanking(false);
+      setPreviewResult(null);
       inputRef.current?.focus();
     });
 
@@ -30,6 +33,14 @@ export function SpotlightApp() {
       setIsRanking(false);
       if (rankedResults && rankedResults.length > 0) {
         setResults(rankedResults);
+        // Update preview if it's open — sync the summary
+        setPreviewResult((prev) => {
+          if (!prev) return null;
+          const updated = rankedResults.find(
+            (r: SearchResult) => r.file?.path === prev.file?.path
+          );
+          return updated ?? prev;
+        });
       }
     });
 
@@ -52,7 +63,7 @@ export function SpotlightApp() {
 
   useEffect(() => {
     resizeWindow();
-  }, [results, isLoading, isRanking, resizeWindow]);
+  }, [results, isLoading, isRanking, previewResult, resizeWindow]);
 
   const handleSearch = async () => {
     const trimmed = query.trim();
@@ -147,6 +158,7 @@ export function SpotlightApp() {
               key={`${result.file?.path}-${index}`}
               result={result}
               animationDelay={index * 40}
+              onPreview={setPreviewResult}
             />
           ))}
         </div>
@@ -155,6 +167,15 @@ export function SpotlightApp() {
       {/* No results */}
       {!isLoading && results.length === 0 && query.length > 0 && results !== null && (
         <div className="spotlight-hint">Press Enter to search</div>
+      )}
+
+      {/* File Preview */}
+      {previewResult && (
+        <FilePreview
+          result={previewResult}
+          onClose={() => setPreviewResult(null)}
+          isRanking={isRanking}
+        />
       )}
     </div>
   );

@@ -156,6 +156,13 @@ ipcMain.handle("search", async (_, query: string) => {
         folder: path.dirname(item.filePath),
       },
       summary: "",
+      metadata: {
+        fileType: item.fileType || "",
+        fileSize: item.fileSize || 0,
+        sizeReadable: item.sizeReadable || "",
+        lastModifiedReadable: item.lastModifiedReadable || "",
+        lastAccessedReadable: item.lastAccessedReadable || "",
+      },
     }));
 
     // Step 2: Kick off Gemini ranking in the background
@@ -176,14 +183,20 @@ ipcMain.handle("search", async (_, query: string) => {
         .then(async (rankResponse) => {
           if (!rankResponse.ok) throw new Error("Ranking request failed");
           const rankData = (await rankResponse.json()) as { results: any[] };
-          const rankedResults = rankData.results.map((item: any) => ({
-            file: {
-              name: path.basename(item.filePath),
-              path: item.filePath,
-              folder: path.dirname(item.filePath),
-            },
-            summary: item.summary,
-          }));
+          // Merge ranked summaries with existing metadata from initial results
+          const rankedResults = rankData.results.map((item: any) => {
+            // Find matching initial result to preserve metadata
+            const existing = initialResults.find((r: any) => r.file.path === item.filePath);
+            return {
+              file: {
+                name: path.basename(item.filePath),
+                path: item.filePath,
+                folder: path.dirname(item.filePath),
+              },
+              summary: item.summary,
+              metadata: existing?.metadata || {},
+            };
+          });
           // Send ranked results to all windows
           mainWindow?.webContents.send("search-ranked-results", rankedResults);
           spotlightWindow?.webContents.send(

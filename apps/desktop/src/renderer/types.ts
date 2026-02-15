@@ -9,7 +9,16 @@ export interface File {
     folder: string;
 }
 
+export interface FileMetadata {
+    fileType: string;
+    fileSize: number;
+    sizeReadable: string;
+    lastModifiedReadable: string;
+    lastAccessedReadable: string;
+}
+
 export interface SearchResult {
     file: File;
     summary: string;
+    metadata?: FileMetadata;
 }
