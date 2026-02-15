@@ -13,6 +13,8 @@ body,
   height: auto;
   overflow: hidden;
   background: transparent;
+  margin: 0;
+  padding: 0;
 }
 
 body {
@@ -37,6 +39,14 @@ body {
   box-shadow:
     0 24px 80px rgba(0, 0, 0, 0.6),
     0 0 0 1px rgba(255, 255, 255, 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.spotlight-container--loading {
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(59, 130, 246, 0.15);
 }
 
 /* ── Search Input ───────────────────────────────────── */
@@ -47,6 +57,19 @@ body {
   height: 56px;
   gap: 12px;
   -webkit-app-region: drag;
+  position: relative;
+}
+
+.spotlight-container--loading .spotlight-input-wrapper::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 16px;
+  right: 16px;
+  height: 2px;
+  background: #3b82f6;
+  border-radius: 1px;
+  animation: spotlight-loading-bar 1.5s ease-in-out infinite;
 }
 
 .spotlight-search-icon {
@@ -120,6 +143,13 @@ body {
   }
 }
 
+@keyframes spotlight-loading-bar {
+  0% { transform: scaleX(0); transform-origin: left; }
+  50% { transform: scaleX(1); transform-origin: left; }
+  51% { transform-origin: right; }
+  100% { transform: scaleX(0); transform-origin: right; }
+}
+
 /* ── Results ────────────────────────────────────────── */
 .spotlight-results {
   max-height: 400px;
@@ -137,69 +167,6 @@ body {
   border-radius: 3px;
 }
 
-.spotlight-result-item {
-  display: flex;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.12s ease;
-}
-
-.spotlight-result-item:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.spotlight-result-rank {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  border-radius: 6px;
-  background: rgba(59, 130, 246, 0.12);
-  color: #3b82f6;
-  font-size: 11px;
-  font-weight: 700;
-  margin-top: 2px;
-}
-
-.spotlight-result-content {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.spotlight-result-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: #e5e5e5;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.spotlight-result-path {
-  font-size: 11px;
-  color: #555;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.spotlight-result-summary {
-  font-size: 12px;
-  color: #888;
-  line-height: 1.4;
-  margin-top: 2px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
 
 /* ── Hint ───────────────────────────────────────────── */
 .spotlight-hint {

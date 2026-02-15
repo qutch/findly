@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { ResultItem } from "./components/ResultItem";
 import type { SearchResult } from "./types";
 
 export function SpotlightApp() {
@@ -26,7 +27,7 @@ export function SpotlightApp() {
   const resizeWindow = useCallback(() => {
     requestAnimationFrame(() => {
       if (containerRef.current) {
-        const height = containerRef.current.scrollHeight + 16;
+        const height = containerRef.current.scrollHeight;
         window.api.resizeSpotlight(height);
       }
     });
@@ -64,7 +65,7 @@ export function SpotlightApp() {
   };
 
   return (
-    <div className="spotlight-container" ref={containerRef}>
+    <div className={`spotlight-container${isLoading ? " spotlight-container--loading" : ""}`} ref={containerRef}>
       {/* Search input */}
       <div className="spotlight-input-wrapper">
         <svg
@@ -116,22 +117,10 @@ export function SpotlightApp() {
       {!isLoading && results.length > 0 && (
         <div className="spotlight-results">
           {results.map((result, index) => (
-            <div className="spotlight-result-item" key={`${result.file?.path}-${index}`}>
-              <div className="spotlight-result-rank">#{index + 1}</div>
-              <div className="spotlight-result-content">
-                <div className="spotlight-result-name">
-                  {result.file?.name ?? "Untitled"}
-                </div>
-                <div className="spotlight-result-path">
-                  {result.file?.path ?? ""}
-                </div>
-                {result.summary && (
-                  <div className="spotlight-result-summary">
-                    {result.summary}
-                  </div>
-                )}
-              </div>
-            </div>
+            <ResultItem
+              key={`${result.file?.path}-${index}`}
+              result={result}
+            />
           ))}
         </div>
       )}

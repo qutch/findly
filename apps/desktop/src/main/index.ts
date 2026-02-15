@@ -1,10 +1,11 @@
-import { app, Tray, Menu, BrowserWindow, ipcMain, dialog, globalShortcut } from "electron";
+import { app, Tray, Menu, BrowserWindow, ipcMain, dialog, globalShortcut, shell } from "electron";
 import path from "path";
 import { FileWatcherService } from "@findly/watcher";
 console.log("[main] Electron main loaded");
 let fileWatcher: FileWatcherService | null = null;
 let mainWindow: BrowserWindow | null = null;
 let spotlightWindow: BrowserWindow | null = null;
+let isQuitting = false;
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -28,6 +29,14 @@ function createWindow() {
     win.loadFile(path.join(__dirname, "../renderer/index.html"));
   }
 
+  // On macOS, hide the window instead of destroying it on close
+  win.on("close", (e) => {
+    if (process.platform === "darwin" && !isQuitting) {
+      e.preventDefault();
+      win.hide();
+    }
+  });
+
   mainWindow = win;
 }
 
@@ -42,7 +51,6 @@ function createSpotlightWindow() {
     movable: true,
     alwaysOnTop: true,
     skipTaskbar: true,
-    titleBarStyle: "customButtonsOnHover",
     vibrancy: "under-window",
     visualEffectState: "active",
     backgroundColor: "#00000000",
@@ -154,6 +162,29 @@ ipcMain.handle("search", async (_, query: string) => {
   }
 });
 
+// ── IPC: File Actions ─────────────────────────────────
+
+ipcMain.handle("open-file", async (_, filePath: string) => {
+  try {
+    const result = await shell.openPath(filePath);
+    if (result) {
+      console.error("[main] Failed to open file:", result);
+    }
+    return result;
+  } catch (error) {
+    console.error("[main] open-file error:", error);
+    return String(error);
+  }
+});
+
+ipcMain.handle("show-in-folder", (_, filePath: string) => {
+  try {
+    shell.showItemInFolder(filePath);
+  } catch (error) {
+    console.error("[main] show-in-folder error:", error);
+  }
+});
+
 // ── IPC: Spotlight ────────────────────────────────────
 
 ipcMain.handle("hide-spotlight", () => {
@@ -189,6 +220,7 @@ app.whenReady().then(() => {
 });
 
 app.on("before-quit", async () => {
+  isQuitting = true;
   globalShortcut.unregisterAll();
   if (fileWatcher) {
     await fileWatcher.stop();
@@ -196,11 +228,16 @@ app.on("before-quit", async () => {
 });
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {};
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
 });
 
 app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow()
-  };
+  if (mainWindow) {
+    mainWindow.show();
+    mainWindow.focus();
+  } else {
+    createWindow();
+  }
 });

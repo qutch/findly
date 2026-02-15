@@ -8,6 +8,7 @@ export default function App() {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Handles adding a new folder
   const handleAddFolder = async () => {
@@ -22,9 +23,14 @@ export default function App() {
   // Handles searches
   const handleSearch = async () => {
     if (!query.trim()) return [];
-    const results = await window.api.search(query);
-    setResults(results);
-    return results;
+    setIsLoading(true);
+    try {
+      const results = await window.api.search(query);
+      setResults(results);
+      return results;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleRemoveFolder = (path: string) => {
@@ -40,15 +46,22 @@ export default function App() {
       />
       <main className="main-content">
         <div className="main-placeholder">
-          <div className="main-placeholder-title">Findly</div>
-          <div className="main-placeholder-subtitle">
-            {folders.length === 0
-              ? "Add a folder to get started"
-              : "Search your files"}
+          <div className="main-header">
+            <div className="main-placeholder-title">Findly</div>
+            <div className="main-placeholder-subtitle">
+              {folders.length === 0
+                ? "Add a folder to get started"
+                : "Search your files"}
+            </div>
           </div>
-          {folders.length === 0
-          ? <></>
-          :<SearchBar query={query} onQueryChange={setQuery} onSearch={handleSearch} />}
+          {folders.length > 0 && (
+            <SearchBar
+              query={query}
+              onQueryChange={setQuery}
+              onSearch={handleSearch}
+              isLoading={isLoading}
+            />
+          )}
           <ResultsList results={results} />
         </div>
       </main>

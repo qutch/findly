@@ -1,0 +1,97 @@
+/* ── Result Item Card ─────────────────────────────── */
+.result-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.result-item:hover {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+}
+
+.result-item:focus-visible {
+  outline: 2px solid var(--accent, #3b82f6);
+  outline-offset: -2px;
+}
+
+/* ── File Type Icon ───────────────────────────────── */
+.result-item__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-tertiary, rgba(59, 130, 246, 0.12));
+  color: var(--accent, #3b82f6);
+  margin-top: 1px;
+}
+
+/* ── Content ──────────────────────────────────────── */
+.result-item__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.result-item__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #e5e5e5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result-item__path {
+  font-size: 11px;
+  color: var(--text-muted, #555);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result-item__summary {
+  font-size: 12px;
+  color: var(--text-secondary, #888);
+  line-height: 1.4;
+  margin-top: 1px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Action Button (Show in Folder) ───────────────── */
+.result-item__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  color: var(--text-muted, #555);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.15s ease;
+  margin-top: 3px;
+}
+
+.result-item:hover .result-item__action {
+  opacity: 1;
+}
+
+.result-item__action:hover {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.1));
+  color: var(--text-primary, #e5e5e5);
+}
