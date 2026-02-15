@@ -12,4 +12,8 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.on("spotlight-reset", handler);
     return () => ipcRenderer.removeListener("spotlight-reset", handler);
   },
+  openFile: (filePath: string): Promise<string> =>
+    ipcRenderer.invoke("open-file", filePath),
+  showInFolder: (filePath: string): Promise<void> =>
+    ipcRenderer.invoke("show-in-folder", filePath),
 });

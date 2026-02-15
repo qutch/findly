@@ -1,3 +1,4 @@
+import { ResultItem } from "./ResultItem";
 import type { SearchResult } from "../types";
 
 interface ResultsListProps {
@@ -10,13 +11,10 @@ export function ResultsList({ results }: ResultsListProps) {
     return (
     <div className="results-list">
         {results.map((result, index) => (
-        <div className="result-item" key={`${result.file?.path ?? "file"}-${index}`}>
-            <div className="result-title">{result.file?.name ?? "Untitled"}</div>
-            <div className="result-path">{result.file?.path ?? ""}</div>
-            {result.summary && (
-            <div className="result-summary">{String(result.summary)}</div>
-            )}
-        </div>
+        <ResultItem
+            key={`${result.file?.path ?? "file"}-${index}`}
+            result={result}
+        />
         ))}
     </div>
     );

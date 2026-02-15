@@ -1,19 +1,37 @@
 import type { SearchResult } from "../types";
-import { SendIcon } from "./Icons";
+import { SendIcon, XIcon } from "./Icons";
 
 interface SearchBarProps {
     query: string;
     onQueryChange: (newQuery: string) => void;
     onSearch: () => Promise<SearchResult[]>;
+    isLoading?: boolean;
 }
 
-export function SearchBar({ query, onQueryChange, onSearch }: SearchBarProps) {
+export function SearchBar({ query, onQueryChange, onSearch, isLoading }: SearchBarProps) {
+    const barClass = `search-bar${isLoading ? " search-bar--loading" : ""}`;
+
     return (
-        <div className="search-bar">
+        <div className={barClass}>
+            <div className="search-bar__icon">
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                >
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+            </div>
             <input
                 type="text"
-                className="search-input"
-                placeholder="Search files..."
+                className="search-bar__input"
+                placeholder="What would you like to find today?"
                 value={query}
                 onChange={(e) => onQueryChange(e.target.value)}
                 onKeyDown={(e) => {
@@ -22,9 +40,18 @@ export function SearchBar({ query, onQueryChange, onSearch }: SearchBarProps) {
                     }
                 }}
             />
-            <button className="search-button" onClick={onSearch}>
-                <SendIcon size={18} />
+            {query && (
+                <button
+                    className="search-bar__clear"
+                    onClick={() => onQueryChange("")}
+                    title="Clear search"
+                >
+                    <XIcon size={12} />
+                </button>
+            )}
+            <button className="search-bar__submit" onClick={onSearch} title="Search">
+                <SendIcon size={16} />
             </button>
         </div>
     );
-};
+}
