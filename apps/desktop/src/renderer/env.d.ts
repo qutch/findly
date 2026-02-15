@@ -12,6 +12,7 @@ declare global {
       onRankedResults: (callback: (results: SearchResult[] | null) => void) => () => void;
       openFile: (filePath: string) => Promise<string>;
       showInFolder: (filePath: string) => Promise<void>;
+      cancelRanking: () => Promise<void>;
       onIndexingStarted: (callback: () => void) => () => void;
       onIndexingProgress: (callback: (progress: { processed: number; total: number }) => void) => () => void;
       onIndexingComplete: (callback: () => void) => () => void;

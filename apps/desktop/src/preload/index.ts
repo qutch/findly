@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("open-file", filePath),
   showInFolder: (filePath: string): Promise<void> =>
     ipcRenderer.invoke("show-in-folder", filePath),
+  cancelRanking: (): Promise<void> => ipcRenderer.invoke("cancel-ranking"),
   onIndexingStarted: (callback: () => void): (() => void) => {
     const handler = () => callback();
     ipcRenderer.on("indexing-started", handler);

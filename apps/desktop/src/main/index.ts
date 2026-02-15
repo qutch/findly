@@ -7,6 +7,7 @@ let watchedPaths: string[] = [];
 let mainWindow: BrowserWindow | null = null;
 let spotlightWindow: BrowserWindow | null = null;
 let isQuitting = false;
+let rankingAbortController: AbortController | null = null;
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -186,6 +187,13 @@ ipcMain.handle("search", async (_, query: string) => {
       .filter(Boolean);
 
     if (filePaths.length > 0) {
+      // Abort any previous ranking request
+      if (rankingAbortController) {
+        rankingAbortController.abort();
+      }
+      rankingAbortController = new AbortController();
+      const signal = rankingAbortController.signal;
+
       // Notify renderer that ranking has started
       mainWindow?.webContents.send("search-ranking-started");
       spotlightWindow?.webContents.send("search-ranking-started");
@@ -194,6 +202,7 @@ ipcMain.handle("search", async (_, query: string) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query, filePaths }),
+        signal,
       })
         .then(async (rankResponse) => {
           if (!rankResponse.ok) throw new Error("Ranking request failed");
@@ -220,6 +229,10 @@ ipcMain.handle("search", async (_, query: string) => {
           );
         })
         .catch((err) => {
+          if (err.name === "AbortError") {
+            console.log("[main] Ranking aborted");
+            return;
+          }
           console.error("[main] Ranking error:", err);
           // Signal ranking is done (even on failure) so indicator goes away
           mainWindow?.webContents.send("search-ranked-results", null);
@@ -232,6 +245,15 @@ ipcMain.handle("search", async (_, query: string) => {
   } catch (error) {
     console.error("[main] Search error:", error);
     return [];
+  }
+});
+
+// ── IPC: Cancel Ranking ───────────────────────────────
+
+ipcMain.handle("cancel-ranking", () => {
+  if (rankingAbortController) {
+    rankingAbortController.abort();
+    rankingAbortController = null;
   }
 });
 

@@ -1,6 +1,7 @@
 from parsers import FileProcessor, File
 from ranking import FileRankingService
 from pineconeService import PineconeService
+import asyncio
 import os
 from dotenv import load_dotenv
 
@@ -46,6 +47,12 @@ async def rankFiles(query: str, filePaths: list[str]):
     load_dotenv(dotenv_path)
 
     ranking_service = FileRankingService(os.getenv('GEMINI_API_KEY') or '')
-    ranking_result = ranking_service.rank_files_sync(query, files)
+
+    # Run the blocking Gemini call in a thread so it doesn't block the event loop
+    # (otherwise /search can't respond while /rank is processing)
+    loop = asyncio.get_event_loop()
+    ranking_result = await loop.run_in_executor(
+        None, ranking_service.rank_files_sync, query, files
+    )
 
     return ranking_result['rankedFiles']

@@ -79,7 +79,17 @@ export default function App() {
     });
   };
 
+  // Cancel ranking and clear results when query is cleared
+  const handleQueryChange = (newQuery: string) => {
+    setQuery(newQuery);
+    if (!newQuery.trim() && isRanking) {
+      window.api.cancelRanking();
+      setIsRanking(false);
+    }
+  };
+
   // Handles searches — returns initial results instantly, Gemini ranking happens in background
+  // Starting a new search automatically aborts any in-flight ranking from the previous search
   const handleSearch = async () => {
     if (!query.trim()) return [];
     setIsLoading(true);
@@ -117,7 +127,7 @@ export default function App() {
           {folders.length > 0 && (
             <SearchBar
               query={query}
-              onQueryChange={setQuery}
+              onQueryChange={handleQueryChange}
               onSearch={handleSearch}
               isLoading={isLoading}
               disabled={isIndexing}
