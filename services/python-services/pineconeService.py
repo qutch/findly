@@ -2,15 +2,15 @@ import os
 from pinecone import Pinecone, ServerlessSpec
 from openai import OpenAI
 
-class PinconeService:
+class PineconeService:
 
     _instance = None
     _initialized = False
 
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super.__new__(cls)
-            print("Creating new PinconeService instance")
+            cls._instance = super().__new__(cls)
+            print("Creating new PineconeService instance")
         else:
             print("Returning existing PineconeService instance")
 
@@ -26,7 +26,7 @@ class PinconeService:
         self.client = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
         self.openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-        index_name = os.getenv("PINECONE_INDEX_NAME")
+        index_name = os.getenv("PINECONE_INDEX")
 
         if index_name not in self.client.list_indexes().names():
             print(f"Creating index {index_name}...")
@@ -55,35 +55,40 @@ class PinconeService:
     def indexFile(self, chunks: list[str], metadata: dict, file_id: str):
         self.ensure_initialize()
 
+        # Step 1: Collect all embeddings (batch OpenAI calls in groups of 100)
         embeddings = []
-        batch_size = 100  # OpenAI API batch limit
+        embed_batch_size = 100
 
-        for i in range(0, len(chunks), batch_size):
-            batch = chunks[i:i + batch_size]
+        for i in range(0, len(chunks), embed_batch_size):
+            batch = chunks[i:i + embed_batch_size]
             response = self.openai_client.embeddings.create(
                 model="text-embedding-3-small",
                 input=batch
             )
             embeddings.extend([item.embedding for item in response.data])
 
-            vectors = [
-                {
-                    "id": f"{file_id}_{i}",
-                    "values": embedding,
-                    "metadata": {
-                        "text": chunk,
-                        "chunk_index": i,
-                        **metadata  # Spread the provided metadata
-                    }
+        # Step 2: Build vectors with unique IDs
+        vectors = [
+            {
+                "id": f"{file_id}_{idx}",
+                "values": embedding,
+                "metadata": {
+                    "text": chunk,
+                    "chunk_index": idx,
+                    **metadata
                 }
-                for i, (chunk, embedding) in enumerate(zip(chunks, embeddings))
-            ]
+            }
+            for idx, (chunk, embedding) in enumerate(zip(chunks, embeddings))
+        ]
 
-            upsert_batch_size = 100
-            for i in range(0, len(vectors), upsert_batch_size):
-                batch = vectors[i:i + upsert_batch_size]
-                self.index.upsert(vectors=batch)
-                print(f"Uploaded batch {i // upsert_batch_size + 1}/{(len(vectors) - 1) // upsert_batch_size + 1}")
+        # Step 3: Upsert to Pinecone in batches
+        upsert_batch_size = 100
+        total_batches = (len(vectors) - 1) // upsert_batch_size + 1
+
+        for i in range(0, len(vectors), upsert_batch_size):
+            batch = vectors[i:i + upsert_batch_size]
+            self.index.upsert(vectors=batch)
+            print(f"Uploaded batch {i // upsert_batch_size + 1}/{total_batches}")
 
     def query(self, query_text: str, filter: dict = None) -> list[dict]:
         self.ensure_initialize()
@@ -101,7 +106,7 @@ class PinconeService:
         unique_matches = []
 
         for match in results.matches:
-            filepath = match.metadata.get("filepath")
+            filepath = match.metadata.get("filePath")
             if filepath and filepath not in seen_files:
                 seen_files.add(filepath)
                 unique_matches.append({

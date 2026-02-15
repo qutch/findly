@@ -183,14 +183,3 @@ class FileProcessor:
             "chunks": chunks,
             "metadata": parsed["metadata"],
         }
-    
-    @staticmethod
-    def sendToPinecone(fileName: str):
-        """
-        Full pipeline to parse a file, prepare it, and send it to Pinecone.
-        """
-        preparedFiles = FileProcessor.prepareForPinecone(fileName)
-        print(fileName)
-        print(preparedFiles)
-        
-        # Call Pinecone Service to upsert chunks and metadata (not implemented here)

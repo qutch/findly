@@ -58,6 +58,30 @@ ipcMain.handle("select-folder", async () => {
   return { name, path: folderPath };
 });
 
+ipcMain.handle("search", async (_, query: string) => {
+  try {
+    const response = await fetch(
+      `http://localhost:8100/search?query=${query}`
+    );
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = (await response.json()) as { results: any[] };
+
+    return data.results.map((item: any) => ({
+      file: {
+        name: path.basename(item.filePath),
+        path: item.filePath,
+        folder: path.dirname(item.filePath),
+      },
+      summary: item.summary,
+    }));
+  } catch (error) {
+    console.error("[main] Search error:", error);
+    return [];
+  }
+});
+
 // ── App Lifecycle ─────────────────────────────────────
 
 app.whenReady().then(() => {

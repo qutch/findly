@@ -2,10 +2,17 @@
 
 import os
 
+from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from pydantic import BaseModel
 
-from parsers import FileProcessor
+from search import searchDB
+
+# Load .env from project root (two levels up from services/python-services/)
+dotenv_path = os.path.join(os.path.dirname(__file__), "../../.env")
+load_dotenv(dotenv_path)
+
+from indexing import uploadFileToPinecone
 
 app = FastAPI()
 
@@ -25,12 +32,13 @@ async def process_file(request: ProcessFileRequest, background_tasks: Background
     if not os.path.exists(request.filePath):
         raise HTTPException(status_code=404, detail=f"File not found: {request.filePath}")
 
-    background_tasks.add_task(FileProcessor.sendToPinecone, request.filePath)
+    background_tasks.add_task(uploadFileToPinecone, request.filePath)
     return {"status": "queued", "file": request.filePath}
 
 
 # Called from electron app when user clicks "Search" button, with the search query as a parameter
 @app.get("/search")
-async def search(query: str):
-    # For now, just return the query back to the app. In a real implementation, this would trigger the search process.
-    return {"status": "searching", "query": query}
+async def searchDatabase(query: str):
+    # Call searchDB from search.py to perform the search and ranking, then return results
+    results = await searchDB(query)
+    return {"status": "searched", "query": query, "results": results}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { SearchBar } from "./components/SearchBar";
+import { ResultsList } from "./components/ResultsList";
 import type { Folder, SearchResult, File } from "./types";
 
 export default function App() {
@@ -48,6 +49,7 @@ export default function App() {
           {folders.length === 0
           ? <></>
           :<SearchBar query={query} onQueryChange={setQuery} onSearch={handleSearch} />}
+          <ResultsList results={results} />
         </div>
       </main>
     </div>

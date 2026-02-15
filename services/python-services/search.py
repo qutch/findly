@@ -1,16 +1,19 @@
-from parsers import FileProcessor
+from parsers import FileProcessor, File
 from ranking import FileRankingService
+from pineconeService import PineconeService
 import os
 from dotenv import load_dotenv
 
 # Main driver of the python services: search functionality
-def search(query: str):
+async def searchDB(query: str):
     """
     Search for files matching the query and return ranked results.
     """
+    pc = PineconeService()
 
     # Step 1: Query Pinecone for relevant file names based on the search query
-    fileNames = queryPinecone(query)
+    fileMetadatas = pc.query(query)
+    fileNames = [metadata['filePath'] for metadata in fileMetadatas if 'filePath' in metadata]
 
     # Step 2: Send file names to ranking service to get ranked list of File objects
     files = FileProcessor.sendToRankingService(fileNames)
