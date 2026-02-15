@@ -12,6 +12,12 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isRanking, setIsRanking] = useState(false);
   const [previewResult, setPreviewResult] = useState<SearchResult | null>(null);
+  const [indexingProgress, setIndexingProgress] = useState<{
+    processed: number;
+    total: number;
+  } | null>(null);
+
+  const isIndexing = indexingProgress !== null;
 
   // Listen for background ranking events from main process
   useEffect(() => {
@@ -37,6 +43,27 @@ export default function App() {
     return () => {
       cleanupStarted();
       cleanupRanked();
+    };
+  }, []);
+
+  // Listen for indexing progress events from main process
+  useEffect(() => {
+    const cleanupStarted = window.api.onIndexingStarted(() => {
+      setIndexingProgress({ processed: 0, total: 0 });
+    });
+
+    const cleanupProgress = window.api.onIndexingProgress((progress) => {
+      setIndexingProgress(progress);
+    });
+
+    const cleanupComplete = window.api.onIndexingComplete(() => {
+      setIndexingProgress(null);
+    });
+
+    return () => {
+      cleanupStarted();
+      cleanupProgress();
+      cleanupComplete();
     };
   }, []);
 
@@ -91,7 +118,26 @@ export default function App() {
               onQueryChange={setQuery}
               onSearch={handleSearch}
               isLoading={isLoading}
+              disabled={isIndexing}
             />
+          )}
+          {isIndexing && indexingProgress && (
+            <div className="indexing-progress">
+              <div className="indexing-progress__bar">
+                <div
+                  className="indexing-progress__fill"
+                  style={{
+                    width:
+                      indexingProgress.total > 0
+                        ? `${(indexingProgress.processed / indexingProgress.total) * 100}%`
+                        : "0%",
+                  }}
+                />
+              </div>
+              <span className="indexing-progress__text">
+                Indexing files: {indexingProgress.processed} / {indexingProgress.total}
+              </span>
+            </div>
           )}
           {isRanking && (
             <div className="ranking-indicator">

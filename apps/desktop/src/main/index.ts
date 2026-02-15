@@ -126,12 +126,21 @@ ipcMain.handle("select-folder", async () => {
     await fileWatcher.stop();
   }
 
-  // Start new watcher
+  // Start new watcher with indexing progress tracking
   fileWatcher = new FileWatcherService({
     paths: [folderPath],
+    onIndexingProgress: (processed, total) => {
+      mainWindow?.webContents.send("indexing-progress", { processed, total });
+    },
+    onIndexingComplete: () => {
+      mainWindow?.webContents.send("indexing-complete");
+    },
   });
 
   fileWatcher.start();
+
+  // Notify renderer that indexing has started
+  mainWindow?.webContents.send("indexing-started");
 
   console.log("[main] Watching folder:", folderPath);
 

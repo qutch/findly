@@ -336,6 +336,40 @@ body {
   }
 }
 
+/* ── Indexing Progress ─────────────────────────────── */
+.indexing-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 640px;
+  padding: 10px 0 4px;
+  animation: ranking-fade-in 0.3s ease;
+}
+
+.indexing-progress__bar {
+  width: 100%;
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.indexing-progress__fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  min-width: 2px;
+}
+
+.indexing-progress__text {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  opacity: 0.85;
+}
+
 /* ── Search bar ────────────────────────────────────── */
 .search-bar {
   display: flex;
@@ -361,6 +395,23 @@ body {
 .search-bar--loading {
   border-color: var(--accent);
   animation: search-pulse 1.5s ease-in-out infinite;
+}
+
+.search-bar--disabled {
+  opacity: 0.45;
+  pointer-events: none;
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.search-bar--disabled .search-bar__input {
+  cursor: not-allowed;
+  color: var(--text-muted);
+}
+
+.search-bar--disabled .search-bar__submit {
+  cursor: not-allowed;
+  color: var(--text-muted);
 }
 
 @keyframes search-pulse {

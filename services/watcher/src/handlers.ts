@@ -3,28 +3,35 @@ const DOCUMENT_PROCESSOR_URL =
   'http://localhost:8100/process-file';
 
 const MAX_CONCURRENT = 3;
-const queue: string[] = [];
+
+type QueueItem = {
+  filePath: string;
+  onComplete?: () => void;
+};
+
+const queue: QueueItem[] = [];
 let inFlight = 0;
 
-export function onFileAdded(filePath: string): void {
-  enqueue(filePath);
+export function onFileAdded(filePath: string, onComplete?: () => void): void {
+  enqueue(filePath, onComplete);
 }
 
-export function onFileChanged(filePath: string): void {
-  enqueue(filePath);
+export function onFileChanged(filePath: string, onComplete?: () => void): void {
+  enqueue(filePath, onComplete);
 }
 
-function enqueue(filePath: string): void {
-  queue.push(filePath);
+function enqueue(filePath: string, onComplete?: () => void): void {
+  queue.push({ filePath, onComplete });
   void drainQueue();
 }
 
 async function drainQueue(): Promise<void> {
   while (queue.length > 0 && inFlight < MAX_CONCURRENT) {
-    const filePath = queue.shift()!;
+    const item = queue.shift()!;
     inFlight++;
-    sendToDocumentProcessor(filePath).finally(() => {
+    sendToDocumentProcessor(item.filePath).finally(() => {
       inFlight--;
+      item.onComplete?.();
       void drainQueue();
     });
   }

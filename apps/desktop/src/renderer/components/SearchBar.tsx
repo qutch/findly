@@ -6,10 +6,11 @@ interface SearchBarProps {
     onQueryChange: (newQuery: string) => void;
     onSearch: () => Promise<SearchResult[]>;
     isLoading?: boolean;
+    disabled?: boolean;
 }
 
-export function SearchBar({ query, onQueryChange, onSearch, isLoading }: SearchBarProps) {
-    const barClass = `search-bar${isLoading ? " search-bar--loading" : ""}`;
+export function SearchBar({ query, onQueryChange, onSearch, isLoading, disabled }: SearchBarProps) {
+    const barClass = `search-bar${isLoading ? " search-bar--loading" : ""}${disabled ? " search-bar--disabled" : ""}`;
 
     return (
         <div className={barClass}>
@@ -31,16 +32,17 @@ export function SearchBar({ query, onQueryChange, onSearch, isLoading }: SearchB
             <input
                 type="text"
                 className="search-bar__input"
-                placeholder="What would you like to find today?"
+                placeholder={disabled ? "Indexing in progress…" : "What would you like to find today?"}
                 value={query}
+                disabled={disabled}
                 onChange={(e) => onQueryChange(e.target.value)}
                 onKeyDown={(e) => {
-                    if (e.key === "Enter") {
+                    if (e.key === "Enter" && !disabled) {
                         onSearch();
                     }
                 }}
             />
-            {query && (
+            {query && !disabled && (
                 <button
                     className="search-bar__clear"
                     onClick={() => onQueryChange("")}
@@ -49,7 +51,12 @@ export function SearchBar({ query, onQueryChange, onSearch, isLoading }: SearchB
                     <XIcon size={12} />
                 </button>
             )}
-            <button className="search-bar__submit" onClick={onSearch} title="Search">
+            <button
+                className="search-bar__submit"
+                onClick={onSearch}
+                disabled={disabled}
+                title="Search"
+            >
                 <SendIcon size={16} />
             </button>
         </div>

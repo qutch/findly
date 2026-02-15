@@ -4,7 +4,7 @@ import os
 from typing import List
 
 from dotenv import load_dotenv
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from search import searchDB_initial, rankFiles
@@ -37,13 +37,14 @@ async def health():
 
 
 # Called from watcher when a new file is added or modified
-@app.post("/process-file", status_code=202)
-async def process_file(request: ProcessFileRequest, background_tasks: BackgroundTasks):
+# Synchronous so the caller knows when indexing is truly done
+@app.post("/process-file")
+def process_file(request: ProcessFileRequest):
     if not os.path.exists(request.filePath):
         raise HTTPException(status_code=404, detail=f"File not found: {request.filePath}")
 
-    background_tasks.add_task(uploadFileToPinecone, request.filePath)
-    return {"status": "queued", "file": request.filePath}
+    uploadFileToPinecone(request.filePath)
+    return {"status": "processed", "file": request.filePath}
 
 
 # Called from electron app — returns initial Pinecone results immediately (fast)

@@ -26,4 +26,19 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("open-file", filePath),
   showInFolder: (filePath: string): Promise<void> =>
     ipcRenderer.invoke("show-in-folder", filePath),
+  onIndexingStarted: (callback: () => void): (() => void) => {
+    const handler = () => callback();
+    ipcRenderer.on("indexing-started", handler);
+    return () => ipcRenderer.removeListener("indexing-started", handler);
+  },
+  onIndexingProgress: (callback: (progress: { processed: number; total: number }) => void): (() => void) => {
+    const handler = (_: any, progress: { processed: number; total: number }) => callback(progress);
+    ipcRenderer.on("indexing-progress", handler);
+    return () => ipcRenderer.removeListener("indexing-progress", handler);
+  },
+  onIndexingComplete: (callback: () => void): (() => void) => {
+    const handler = () => callback();
+    ipcRenderer.on("indexing-complete", handler);
+    return () => ipcRenderer.removeListener("indexing-complete", handler);
+  },
 });

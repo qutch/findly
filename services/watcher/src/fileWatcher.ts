@@ -5,6 +5,8 @@ import { onFileAdded, onFileChanged } from './handlers.js';
 export interface FileWatcherOptions {
   paths: string[];
   metadataCheckIntervalMs?: number;
+  onIndexingProgress?: (processed: number, total: number) => void;
+  onIndexingComplete?: () => void;
 }
 
 type FileMetadata = {
@@ -20,11 +22,22 @@ export class FileWatcherService {
   private metadataTimer: ReturnType<typeof setInterval> | null = null;
   private metadataCheckInFlight = false;
 
+  // Indexing progress tracking
+  private readonly onIndexingProgress?: (processed: number, total: number) => void;
+  private readonly onIndexingComplete?: () => void;
+  private filesToProcess = 0;
+  private filesProcessed = 0;
+  private initialScanComplete = false;
+  private pendingAddHandlers = 0;
+  private indexingDone = false;
+
   constructor(options: FileWatcherOptions) {
     this.paths = options.paths;
     this.metadataCheckIntervalMs =
       options.metadataCheckIntervalMs ??
       Number(process.env.WATCH_METADATA_INTERVAL_MS ?? 300000);
+    this.onIndexingProgress = options.onIndexingProgress;
+    this.onIndexingComplete = options.onIndexingComplete;
   }
 
   start(): void {
@@ -41,11 +54,22 @@ export class FileWatcherService {
     });
 
     this.watcher
-      .on('add', (filePath: string) => void this.handleAdd(filePath))
+      .on('add', (filePath: string) => {
+        this.pendingAddHandlers++;
+        this.handleAdd(filePath).finally(() => {
+          this.pendingAddHandlers--;
+          this.checkIndexingComplete();
+        });
+      })
       .on('change', (filePath: string) => void this.handleChange(filePath))
       .on('unlink', (filePath: string) => {
         this.knownFiles.delete(filePath);
         console.log('[watcher] File removed:', filePath);
+      })
+      .on('ready', () => {
+        this.initialScanComplete = true;
+        console.log('[watcher] Initial scan complete. Files to process:', this.filesToProcess);
+        this.checkIndexingComplete();
       })
       .on('error', (error: unknown) => {
         console.error('[watcher] Watcher error:', error);
@@ -74,6 +98,30 @@ export class FileWatcherService {
       await this.watcher.close();
       this.watcher = null;
     }
+
+    // Reset indexing state
+    this.filesToProcess = 0;
+    this.filesProcessed = 0;
+    this.initialScanComplete = false;
+    this.pendingAddHandlers = 0;
+    this.indexingDone = false;
+  }
+
+  private emitProgress(): void {
+    this.onIndexingProgress?.(this.filesProcessed, this.filesToProcess);
+  }
+
+  private checkIndexingComplete(): void {
+    if (this.indexingDone) return;
+    if (
+      this.initialScanComplete &&
+      this.pendingAddHandlers === 0 &&
+      this.filesProcessed === this.filesToProcess
+    ) {
+      this.indexingDone = true;
+      console.log('[watcher] Indexing complete:', this.filesProcessed, 'files');
+      this.onIndexingComplete?.();
+    }
   }
 
   private async handleAdd(filePath: string): Promise<void> {
@@ -82,8 +130,14 @@ export class FileWatcherService {
       if (!metadata) return;
 
       this.knownFiles.set(filePath, metadata);
+      this.filesToProcess++;
+      this.emitProgress();
       console.log('[watcher] File added:', filePath);
-      await onFileAdded(filePath);
+      onFileAdded(filePath, () => {
+        this.filesProcessed++;
+        this.emitProgress();
+        this.checkIndexingComplete();
+      });
     } catch (error) {
       console.error('[watcher] Failed to process added file:', filePath, error);
     }
