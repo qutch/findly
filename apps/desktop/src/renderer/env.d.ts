@@ -5,6 +5,9 @@ declare global {
     api: {
       selectFolder: () => Promise<{ name: string; path: string } | null>;
       search: (query: string) => Promise<SearchResult[]>;
+      hideSpotlight: () => Promise<void>;
+      resizeSpotlight: (height: number) => void;
+      onSpotlightReset: (callback: () => void) => () => void;
     };
   }
 }
